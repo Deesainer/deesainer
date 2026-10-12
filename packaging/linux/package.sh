@@ -19,13 +19,13 @@ if command -v dpkg-deb >/dev/null; then
   DEB_ARCH=$([[ "$ARCH" == "x86_64" ]] && echo amd64 || echo arm64)
   # Debian sorts 1.1.0~beta.1 before 1.1.0.
   DEB_VERSION=$(printf '%s' "$VERSION" | tr '-' '~')
+  # Runtime dependencies: winit needs libxkbcommon-x11 (the app panics
+  # without it), gtk for the file dialogs, GL for the canvas.
   cat > "$STAGE/DEBIAN/control" <<CONTROL
 Package: deesainer
 Version: $DEB_VERSION
 Architecture: $DEB_ARCH
 Maintainer: Deesainer contributors
-# winit needs libxkbcommon-x11 at runtime (the app panics without it), gtk for
-# the file dialogs, and a GL implementation for the canvas.
 Depends: libxkbcommon-x11-0, libgtk-3-0, libgl1, libegl1
 Description: Open-source interface design tool
  Clean-room design tool with an infinite canvas, components, auto layout,
