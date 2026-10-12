@@ -9,7 +9,7 @@ BIN="target/release"
 if [ "$MODE" = "--deb" ]; then
   DEB=${2:-dist/deesainer_*.deb}
   sudo apt-get update
-  sudo apt-get install -y xvfb libxkbcommon0 libgtk-3-0 libegl1 libgl1 jq netcat-openbsd curl file
+  sudo apt-get install -y xvfb libxkbcommon0 libxkbcommon-x11-0 libgtk-3-0 libegl1 libgl1 jq netcat-openbsd curl file
   sudo dpkg -i $DEB || sudo apt-get -f install -y
   BIN="/usr/bin"
   test -x "$BIN/deesainer-cli"

@@ -24,6 +24,9 @@ Package: deesainer
 Version: $DEB_VERSION
 Architecture: $DEB_ARCH
 Maintainer: Deesainer contributors
+# winit needs libxkbcommon-x11 at runtime (the app panics without it), gtk for
+# the file dialogs, and a GL implementation for the canvas.
+Depends: libxkbcommon-x11-0, libgtk-3-0, libgl1, libegl1
 Description: Open-source interface design tool
  Clean-room design tool with an infinite canvas, components, auto layout,
  prototyping, multiplayer and an MCP server for agents.
