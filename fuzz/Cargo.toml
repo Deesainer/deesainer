@@ -1,0 +1,37 @@
+# cargo-fuzz targets (nightly): `cargo +nightly fuzz run format_read`.
+# Not a workspace member, so stable builds and CI ignore it.
+[package]
+name = "deesainer-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+deesainer-format = { path = "../crates/format" }
+deesainer-io = { path = "../crates/io" }
+deesainer-engine = { path = "../crates/engine" }
+deesainer-automation = { path = "../crates/automation" }
+
+[workspace]
+
+[[bin]]
+name = "format_read"
+path = "fuzz_targets/format_read.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "svg_import"
+path = "fuzz_targets/svg_import.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "control_line"
+path = "fuzz_targets/control_line.rs"
+test = false
+doc = false

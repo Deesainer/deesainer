@@ -1,0 +1,18 @@
+[package]
+name = "deesainer-vector"
+description = "Deesainer L2: shape outlines, path flattening, hit-testing and boolean ops."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-doc.workspace = true
+i_overlay = "9"
+
+[dev-dependencies]
+deesainer-color.workspace = true
+
+[lints]
+workspace = true

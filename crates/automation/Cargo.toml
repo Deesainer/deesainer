@@ -1,0 +1,29 @@
+[package]
+name = "deesainer-automation"
+description = "Deesainer L6: the MCP server (stdio JSON-RPC) and the control-protocol envelope."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-engine.workspace = true
+deesainer-format.workspace = true
+deesainer-io.workspace = true
+deesainer-doc.workspace = true
+deesainer-render.workspace = true
+deesainer-geom.workspace = true
+deesainer-sync.workspace = true
+getrandom = "0.3"
+serde_json.workspace = true
+serde.workspace = true
+ureq = "3"
+base64.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+webpki-roots = "1"
+
+[dev-dependencies]
+rcgen = "0.13"
+
+[lints]
+workspace = true

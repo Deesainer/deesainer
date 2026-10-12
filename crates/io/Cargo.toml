@@ -1,0 +1,29 @@
+[package]
+name = "deesainer-io"
+description = "Deesainer L4: export (PNG, JPEG, WebP, SVG, PDF) and import (SVG, images)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+deesainer-vector.workspace = true
+deesainer-text.workspace = true
+deesainer-render.workspace = true
+deesainer-format.workspace = true
+deesainer-figfile.workspace = true
+base64.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+pdf-writer = "0.15"
+usvg = { version = "0.48", default-features = false }
+miniz_oxide = "0.9"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "deesainer-ops"
+description = "Deesainer L2: invertible ops, transactions and undo history."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+base64.workspace = true
+
+[lints]
+workspace = true

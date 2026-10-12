@@ -1,0 +1,22 @@
+[package]
+name = "deesainer-render"
+description = "Deesainer L3: the CPU reference renderer (tiny-skia) and PNG encoding."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+deesainer-vector.workspace = true
+deesainer-algo.workspace = true
+tiny-skia = "0.12"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+thiserror.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,19 @@
+[package]
+name = "deesainer-tools"
+description = "Deesainer L4: canvas tools as state machines that emit commands and overlays."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-doc.workspace = true
+deesainer-vector.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+deesainer-color.workspace = true
+
+[lints]
+workspace = true

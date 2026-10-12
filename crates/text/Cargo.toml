@@ -1,0 +1,18 @@
+[package]
+name = "deesainer-text"
+description = "Deesainer L2: text shaping, layout and glyph outlines (cosmic-text)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+cosmic-text = "0.19"
+swash = "0.2"
+unicode-segmentation = "1.13"
+
+[lints]
+workspace = true

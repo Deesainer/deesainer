@@ -1,0 +1,57 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "apps/*", "xtask"]
+exclude = ["fuzz"]
+
+[workspace.package]
+version = "1.1.0-beta.1"
+edition = "2021"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+serde = { version = "1.0.183", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+thiserror = "1"
+base64 = "0.22"
+blake3 = "1"
+deesainer-geom = { path = "crates/geom" }
+deesainer-color = { path = "crates/color" }
+deesainer-doc = { path = "crates/doc" }
+deesainer-ops = { path = "crates/ops" }
+deesainer-vector = { path = "crates/vector" }
+deesainer-text = { path = "crates/text" }
+deesainer-algo = { path = "crates/algo" }
+deesainer-render = { path = "crates/render" }
+deesainer-format = { path = "crates/format" }
+deesainer-io = { path = "crates/io" }
+deesainer-figfile = { path = "crates/figfile" }
+deesainer-sync = { path = "crates/sync" }
+deesainer-plugins = { path = "crates/plugins" }
+deesainer-engine = { path = "crates/engine" }
+deesainer-automation = { path = "crates/automation" }
+deesainer-server = { path = "crates/server" }
+deesainer-tools = { path = "crates/tools" }
+deesainer-mesh = { path = "crates/mesh" }
+deesainer-gpu = { path = "crates/gpu" }
+deesainer-handoff = { path = "crates/handoff" }
+deesainer-ui = { path = "crates/ui" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "unwind"
+
+[profile.dev.package."*"]
+opt-level = 2

@@ -1,0 +1,19 @@
+[package]
+name = "deesainer-doc"
+description = "Deesainer L1: the SceneNode document model (pure data + serde)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

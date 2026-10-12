@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Deesainer
+Comment=Open-source interface design tool
+Exec=deesainer %f
+Icon=deesainer
+Categories=Graphics;VectorGraphics;Development;
+MimeType=application/x-deesainer;

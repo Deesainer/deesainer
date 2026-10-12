@@ -1,0 +1,15 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde_json.workspace = true
+deesainer-engine.workspace = true
+deesainer-io.workspace = true
+deesainer-render.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "deesainer-figfile"
+description = "Deesainer L0 standalone: reads the .fig container (zip + Kiwi-encoded document with its embedded schema) into a generic value tree."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+zip = { version = "9", default-features = false, features = ["deflate"] }
+miniz_oxide = "0.9"
+ruzstd = "0.9.0"
+
+[lints]
+workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "deesainer-gpu"
+description = "Deesainer L5: GPU compositing of a page's display list on wgpu (layers, opacity, blend modes)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-color.workspace = true
+deesainer-mesh.workspace = true
+wgpu = "30"
+
+[dev-dependencies]
+deesainer-doc.workspace = true
+deesainer-geom.workspace = true
+deesainer-render.workspace = true
+deesainer-text.workspace = true
+pollster = "0.4"
+
+[lints]
+workspace = true

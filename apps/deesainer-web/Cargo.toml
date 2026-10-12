@@ -1,0 +1,29 @@
+[package]
+name = "deesainer-web"
+description = "Deesainer in the browser: the same shell and engine compiled to WebAssembly."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+deesainer-ui.workspace = true
+deesainer-engine.workspace = true
+deesainer-text.workspace = true
+deesainer-sync.workspace = true
+deesainer-color.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+eframe = { version = "0.36", default-features = false, features = ["default_fonts", "wgpu"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Window", "Document", "HtmlCanvasElement", "Location", "UrlSearchParams", "WebSocket", "MessageEvent", "Response"] }
+js-sys = "0.3"
+egui = "0.36"
+
+[lints]
+workspace = true

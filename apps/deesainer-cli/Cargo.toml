@@ -1,0 +1,26 @@
+[package]
+name = "deesainer-cli"
+description = "Deesainer headless CLI: exec, commands, and a JSON-lines serve loop."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-engine.workspace = true
+deesainer-automation.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+deesainer-render.workspace = true
+deesainer-mesh.workspace = true
+deesainer-gpu.workspace = true
+wgpu = "30"
+pollster = "0.4"
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-vector.workspace = true
+deesainer-io.workspace = true
+deesainer-format.workspace = true
+
+[lints]
+workspace = true

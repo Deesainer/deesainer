@@ -1,0 +1,21 @@
+[package]
+name = "deesainer-mesh"
+description = "Deesainer L4: triangle meshes of a page for GPU drawing (fills, strokes, text, images), with a precise list of what it cannot draw."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+deesainer-vector.workspace = true
+deesainer-render.workspace = true
+lyon_tessellation = "1.0.16"
+
+[dev-dependencies]
+tiny-skia = "0.12"
+
+[lints]
+workspace = true

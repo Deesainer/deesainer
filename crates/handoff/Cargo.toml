@@ -1,0 +1,17 @@
+[package]
+name = "deesainer-handoff"
+description = "Deesainer L4: developer handoff (a layer's effective values, generated CSS, SwiftUI and Compose, redlines)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+deesainer-render.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

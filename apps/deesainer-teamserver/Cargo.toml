@@ -1,0 +1,22 @@
+[package]
+name = "deesainer-teamserver"
+description = "Deesainer team server: accounts, many shared files, live rooms, an HTTP API."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "deesainer-server"
+path = "src/main.rs"
+
+[dependencies]
+deesainer-server.workspace = true
+deesainer-automation.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+deesainer-engine.workspace = true

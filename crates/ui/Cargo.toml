@@ -1,0 +1,28 @@
+[package]
+name = "deesainer-ui"
+description = "Deesainer L6: the egui shell (canvas, layers, design panel, menus) over the engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+base64.workspace = true
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+deesainer-engine.workspace = true
+deesainer-render.workspace = true
+deesainer-mesh.workspace = true
+deesainer-gpu.workspace = true
+deesainer-vector.workspace = true
+deesainer-tools.workspace = true
+deesainer-text.workspace = true
+deesainer-algo.workspace = true
+egui = "0.36"
+egui-wgpu = "0.36"
+serde_json.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

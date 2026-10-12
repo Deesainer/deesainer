@@ -1,0 +1,21 @@
+[package]
+name = "deesainer-format"
+description = "Deesainer L3: the native .deesainer file format (zip bundle, versioned manifest, content-addressed assets)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-doc.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+blake3.workspace = true
+zip = { version = "9", default-features = false, features = ["deflate"] }
+
+[dev-dependencies]
+deesainer-color.workspace = true
+
+[lints]
+workspace = true

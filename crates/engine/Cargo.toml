@@ -1,0 +1,36 @@
+[package]
+name = "deesainer-engine"
+description = "Deesainer L5: Session, command registry and the built-in commands."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+deesainer-doc.workspace = true
+deesainer-ops.workspace = true
+deesainer-vector.workspace = true
+deesainer-text.workspace = true
+deesainer-algo.workspace = true
+deesainer-render.workspace = true
+deesainer-format.workspace = true
+deesainer-io.workspace = true
+deesainer-handoff.workspace = true
+deesainer-tools.workspace = true
+deesainer-plugins.workspace = true
+deesainer-sync.workspace = true
+base64.workspace = true
+blake3.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+deesainer-geom.workspace = true
+deesainer-color.workspace = true
+tiny-skia = "0.12"

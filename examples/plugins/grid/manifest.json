@@ -1,0 +1,7 @@
+{
+  "id": "dev.deesainer.examples.grid",
+  "name": "Grid",
+  "version": "1.0.0",
+  "main": "plugin.wat",
+  "commands": [{ "label": "Draw a card grid", "entry": "run" }]
+}
