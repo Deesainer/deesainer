@@ -30,13 +30,16 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 # CLI: create a file, run a small script, export PNG and SVG.
+echo "smoke: cli new"
 "$BIN/deesainer-cli" new "$WORK/smoke.deesainer" 800 600
 cat > "$WORK/script.jsonl" <<'EOF'
 {"id":1,"method":"engine.execute","params":{"command":"node.create.rectangle","params":{"x":10,"y":10,"width":200,"height":100,"fill":"#1E90FF"}}}
 {"id":2,"method":"engine.execute","params":{"command":"node.create.text","params":{"x":10,"y":130,"content":"smoke test"}}}
 EOF
+echo "smoke: cli run"
 "$BIN/deesainer-cli" run "$WORK/smoke.deesainer" "$WORK/script.jsonl" > "$WORK/run.jsonl"
 grep -q '"result"' "$WORK/run.jsonl"
+echo "smoke: cli export png"
 "$BIN/deesainer-cli" export "$WORK/smoke.deesainer" "$WORK/smoke.png"
 "$BIN/deesainer-cli" export "$WORK/smoke.deesainer" "$WORK/smoke.svg"
 test -s "$WORK/smoke.png"
@@ -83,6 +86,7 @@ wait_x_display() {
 }
 
 # GUI: start headless, talk to the control server, take a screenshot.
+echo "smoke: gui start"
 PORT=$(free_port)
 DISPLAY_NUM=$((90 + RANDOM % 30))
 Xvfb ":$DISPLAY_NUM" -screen 0 1280x800x24 > "$WORK/xvfb.log" 2>&1 &
@@ -102,6 +106,7 @@ mkdir -p "$WORK/in" "$WORK/out"
   --automation-read-root "$WORK/in" --automation-write-root "$WORK/out" \
   > "$WORK/gui.log" 2>&1 &
 APP_PID=$!
+echo "smoke: gui launched"
 if ! wait_port "$PORT"; then
   echo "smoke: the gui did not open the control port" >&2
   echo "--- gui.log ---" >&2
