@@ -560,6 +560,20 @@ fn license_ok(expr: &str) -> bool {
     })
 }
 
+fn normalize_newlines(s: &str) -> String {
+    s.replace("\r\n", "\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_newlines;
+
+    #[test]
+    fn normalize_newlines_converts_crlf_to_lf() {
+        assert_eq!(normalize_newlines("a\r\nb\r\n"), "a\nb\n");
+    }
+}
+
 fn licenses(root: &Path, check: bool) -> TaskResult {
     const TARGETS: &[&str] = &[
         "x86_64-apple-darwin",
@@ -623,7 +637,7 @@ fn licenses(root: &Path, check: bool) -> TaskResult {
     }
     let path = root.join("docs/third-party.md");
     let current = std::fs::read_to_string(&path).unwrap_or_default();
-    if current != md {
+    if normalize_newlines(&current) != normalize_newlines(&md) {
         if check {
             return Err("docs/third-party.md is out of date; run `cargo xtask licenses`".into());
         }
