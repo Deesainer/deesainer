@@ -561,35 +561,53 @@ fn license_ok(expr: &str) -> bool {
 }
 
 fn licenses(root: &Path, check: bool) -> TaskResult {
-    let output = Command::new(cargo())
-        .args(["metadata", "--format-version", "1"])
-        .current_dir(root)
-        .output()
-        .map_err(|e| format!("cannot run cargo metadata: {e}"))?;
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).into_owned());
-    }
-    let meta: Value = serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
-    let workspace: Vec<&str> = meta["workspace_members"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .collect();
+    const TARGETS: &[&str] = &[
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "wasm32-unknown-unknown",
+    ];
     let mut rows: Vec<(String, String, String)> = Vec::new();
     let mut bad = Vec::new();
-    for p in meta["packages"].as_array().into_iter().flatten() {
-        let id = p["id"].as_str().unwrap_or_default();
-        if workspace.contains(&id) {
-            continue;
+    let mut seen: Vec<String> = Vec::new();
+    for target in TARGETS {
+        let output = Command::new(cargo())
+            .args([
+                "metadata",
+                "--format-version",
+                "1",
+                "--filter-platform",
+                target,
+            ])
+            .current_dir(root)
+            .output()
+            .map_err(|e| format!("cannot run cargo metadata: {e}"))?;
+        if !output.status.success() {
+            return Err(String::from_utf8_lossy(&output.stderr).into_owned());
         }
-        let name = p["name"].as_str().unwrap_or_default().to_owned();
-        let version = p["version"].as_str().unwrap_or_default().to_owned();
-        let license = p["license"].as_str().unwrap_or("UNKNOWN").to_owned();
-        if !license_ok(&license) {
-            bad.push(format!("{name} {version}: {license}"));
+        let meta: Value = serde_json::from_slice(&output.stdout).map_err(|e| e.to_string())?;
+        let workspace: Vec<&str> = meta["workspace_members"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect();
+        for p in meta["packages"].as_array().into_iter().flatten() {
+            let id = p["id"].as_str().unwrap_or_default();
+            if workspace.contains(&id) || seen.iter().any(|s| s == id) {
+                continue;
+            }
+            seen.push(id.to_owned());
+            let name = p["name"].as_str().unwrap_or_default().to_owned();
+            let version = p["version"].as_str().unwrap_or_default().to_owned();
+            let license = p["license"].as_str().unwrap_or("UNKNOWN").to_owned();
+            if !license_ok(&license) {
+                bad.push(format!("{name} {version}: {license}"));
+            }
+            rows.push((name, version, license));
         }
-        rows.push((name, version, license));
     }
     rows.sort();
     rows.dedup();

@@ -55,11 +55,23 @@ jobs:
           name: linux
           path: dist/*
 
-  # Windows ships once its CI is green: the plugin tests crash on MSVC debug
-  # builds. Re-add the job below (packaging/windows/package.ps1 uploads the
-  # zip) and extend the publish needs when it is.
+  windows:
+    runs-on: windows-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: packaging/windows/package.ps1
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*.zip
+
   publish:
-    needs: [macos, linux]
+    needs: [macos, linux, windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
