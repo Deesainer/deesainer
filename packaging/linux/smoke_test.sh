@@ -72,13 +72,22 @@ DISPLAY_NUM=$((90 + RANDOM % 30))
 Xvfb ":$DISPLAY_NUM" -screen 0 1280x800x24 > "$WORK/xvfb.log" 2>&1 &
 XVFB_PID=$!
 export DISPLAY=":$DISPLAY_NUM"
+export LIBGL_ALWAYS_SOFTWARE=1
 mkdir -p "$WORK/in" "$WORK/out"
 "$BIN/deesainer" --demo --render cpu --control "$PORT" \
   --control-token-file "$WORK/token" \
   --automation-read-root "$WORK/in" --automation-write-root "$WORK/out" \
   > "$WORK/gui.log" 2>&1 &
 APP_PID=$!
-wait_port "$PORT"
+if ! wait_port "$PORT"; then
+  echo "smoke: the gui did not open the control port" >&2
+  echo "--- gui.log ---" >&2
+  cat "$WORK/gui.log" >&2 || true
+  echo "--- xvfb.log ---" >&2
+  cat "$WORK/xvfb.log" >&2 || true
+  kill "$APP_PID" "$XVFB_PID" 2>/dev/null || true
+  exit 1
+fi
 TOKEN=$(cat "$WORK/token")
 
 send() {
