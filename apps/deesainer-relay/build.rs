@@ -1,8 +1,7 @@
-use std::path::PathBuf;
-
 fn main() {
     #[cfg(windows)]
     {
+        use std::path::PathBuf;
         let icon =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../assets/app-icon/deesainer.ico");
         if let Some(icon) = icon.to_str() {
