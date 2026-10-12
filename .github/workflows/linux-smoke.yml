@@ -1,0 +1,33 @@
+name: linux-smoke
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'packaging/**'
+      - 'apps/**'
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/linux-smoke.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libgtk-3-dev
+      - name: Build
+        run: cargo build --release -p deesainer -p deesainer-cli -p deesainer-relay -p deesainer-teamserver
+      - name: Package
+        run: packaging/linux/package.sh
+      - name: Smoke test
+        run: packaging/linux/smoke_test.sh --deb dist/deesainer_*.deb

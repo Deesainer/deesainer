@@ -24,3 +24,6 @@ eframe = { version = "0.36", default-features = false, features = ["default_font
 
 [lints]
 workspace = true
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

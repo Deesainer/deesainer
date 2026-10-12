@@ -24,3 +24,6 @@ deesainer-format.workspace = true
 
 [lints]
 workspace = true
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

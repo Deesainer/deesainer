@@ -6,7 +6,7 @@ An open-source interface design tool in Rust, for macOS, Windows, Linux and the 
 
 ## Download
 
-Installers for macOS (universal), Windows and Linux are on the [releases page](https://github.com/Deesainer/deesainer/releases). The beta builds are not signed yet: on macOS right-click the app and choose Open the first time; on Windows choose More info, then Run anyway.
+Installers for macOS (universal), Windows and Linux are on the [releases page](https://github.com/Deesainer/deesainer/releases). On Windows you can pick the NSIS installer (Start Menu shortcut, uninstaller and `.deesainer` file association) or the portable zip. The beta builds are not signed yet: on macOS right-click the app and choose Open the first time; on Windows choose More info, then Run anyway.
 
 ## Build from source
 

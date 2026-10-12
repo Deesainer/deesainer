@@ -50,6 +50,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libgtk-3-dev
       - run: packaging/linux/package.sh
+      - name: Smoke test the package
+        run: packaging/linux/smoke_test.sh --deb dist/*.deb
       - uses: actions/upload-artifact@v4
         with:
           name: linux
@@ -61,6 +63,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
       - run: packaging/windows/package.ps1
         shell: pwsh
         env:
@@ -68,7 +72,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*.exe
 
   publish:
     needs: [macos, linux, windows]
