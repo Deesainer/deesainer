@@ -66,6 +66,22 @@ wait_port() {
   return 1
 }
 
+wait_x_display() {
+  local display_num=$1
+  local xvfb_pid=$2
+  local i
+  for i in $(seq 1 120); do
+    if ! kill -0 "$xvfb_pid" 2>/dev/null; then
+      return 1
+    fi
+    if [ -S "/tmp/.X11-unix/X$display_num" ]; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  return 1
+}
+
 # GUI: start headless, talk to the control server, take a screenshot.
 PORT=$(free_port)
 DISPLAY_NUM=$((90 + RANDOM % 30))
@@ -73,6 +89,13 @@ Xvfb ":$DISPLAY_NUM" -screen 0 1280x800x24 > "$WORK/xvfb.log" 2>&1 &
 XVFB_PID=$!
 export DISPLAY=":$DISPLAY_NUM"
 export LIBGL_ALWAYS_SOFTWARE=1
+if ! wait_x_display "$DISPLAY_NUM" "$XVFB_PID"; then
+  echo "smoke: xvfb did not start display :$DISPLAY_NUM" >&2
+  echo "--- xvfb.log ---" >&2
+  cat "$WORK/xvfb.log" >&2 || true
+  kill "$XVFB_PID" 2>/dev/null || true
+  exit 1
+fi
 mkdir -p "$WORK/in" "$WORK/out"
 "$BIN/deesainer" --demo --render cpu --control "$PORT" \
   --control-token-file "$WORK/token" \
