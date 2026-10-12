@@ -8,7 +8,8 @@ license.workspace = true
 
 [dependencies]
 # Loop dispatch: the tail-call dispatch of optimised builds overflows the
-# stack on Windows.
+# stack on Windows. In dev builds wasmi is compiled unoptimised (see the
+# workspace profile overrides): optimised + debug-assertions crashes on MSVC.
 wasmi = { version = "2", features = ["portable-dispatch"] }
 serde.workspace = true
 serde_json.workspace = true

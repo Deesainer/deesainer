@@ -55,3 +55,15 @@ panic = "unwind"
 
 [profile.dev.package."*"]
 opt-level = 2
+
+# wasmi crashes on MSVC when built optimised with debug-assertions on (the
+# interpreter, access violation on first execution). Dev keeps it unoptimised,
+# the configuration its own CI tests; release stays optimised with loop dispatch.
+[profile.dev.package.wasmi]
+opt-level = 0
+[profile.dev.package.wasmi_core]
+opt-level = 0
+[profile.dev.package.wasmi_ir]
+opt-level = 0
+[profile.dev.package.wasmi_collections]
+opt-level = 0
