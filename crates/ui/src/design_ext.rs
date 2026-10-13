@@ -27,7 +27,7 @@ fn variable_modes(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
         return;
     }
     widgets::divider(ui);
-    widgets::header(ui, "Variable modes", |_| {});
+    widgets::header(ui, app.tr("Variable modes"), |_| {});
     let full = widgets::half(ui) * 2.0 + 8.0;
     for (collection, modes) in choices {
         let inherited = node
@@ -35,7 +35,8 @@ fn variable_modes(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
             .and_then(|p| doc.mode_at(p, collection))
             .unwrap_or(modes.active);
         let auto = format!(
-            "Auto ({})",
+            "{} ({})",
+            app.tr("Auto"),
             modes.names.get(inherited).cloned().unwrap_or_default()
         );
         let mut options = vec![auto];
@@ -102,7 +103,7 @@ fn component_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) 
             if !variants.is_empty() {
                 widgets::section(
                     ui,
-                    "Variant",
+                    app.tr("Variant"),
                     |_| {},
                     |ui| {
                         for (k, v) in &variants {
@@ -114,12 +115,17 @@ fn component_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) 
             widgets::divider(ui);
             let mut plus = None;
             let actions = |ui: &mut egui::Ui, plus: &mut Option<egui::Response>| {
-                *plus = Some(icons::button(ui, Icon::Plus, false, "Create property"));
+                *plus = Some(icons::button(
+                    ui,
+                    Icon::Plus,
+                    false,
+                    app.tr("Create property"),
+                ));
             };
             if properties.is_empty() {
-                widgets::header_empty(ui, "Properties", |ui| actions(ui, &mut plus));
+                widgets::header_empty(ui, app.tr("Properties"), |ui| actions(ui, &mut plus));
             } else {
-                widgets::header(ui, "Properties", |ui| actions(ui, &mut plus));
+                widgets::header(ui, app.tr("Properties"), |ui| actions(ui, &mut plus));
             }
             if let Some(resp) = &plus {
                 add_property_popover(app, resp, id, &doc);
@@ -181,7 +187,7 @@ fn component_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) 
             overrides,
         } => {
             widgets::divider(ui);
-            widgets::header(ui, "Instance", |ui| {
+            widgets::header(ui, app.tr("Instance"), |ui| {
                 if !overrides.is_empty()
                     && icons::button(ui, Icon::Rotate, false, "Reset all changes").clicked()
                 {
@@ -197,7 +203,7 @@ fn component_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) 
             });
             let Some(main) = doc.get(*component).cloned() else {
                 ui.label(
-                    egui::RichText::new("Main component missing.")
+                    egui::RichText::new(app.tr("Main component missing."))
                         .color(crate::theme::TOKENS.text_secondary),
                 );
                 return;
@@ -385,7 +391,7 @@ fn component_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) 
                         ui.horizontal(|ui| {
                             let names: Vec<String> =
                                 offered.iter().map(|(_, n)| n.clone()).collect();
-                            if let Some(i) = pick(ui, 110.0, "Insert…", &names) {
+                            if let Some(i) = pick(ui, 110.0, app.tr("Insert…"), &names) {
                                 app.dispatch(
                                     "instance.fillSlot",
                                     json!({ "id": id, "name": p.name, "component": offered[i].0 }),
@@ -540,19 +546,19 @@ fn add_property_popover(
     let key = egui::Id::new(("prop-draft", id.0));
     let mut draft: PropDraft = resp.ctx.data(|d| d.get_temp(key)).unwrap_or_default();
     let kinds = [
-        ("boolean", "Boolean (show/hide)"),
-        ("text", "Text"),
-        ("instanceSwap", "Instance swap"),
+        ("boolean", app.tr("Boolean (show/hide)")),
+        ("text", app.tr("Text")),
+        ("instanceSwap", app.tr("Instance swap")),
     ];
     let mut add = false;
     widgets::popover(resp, "Create property").show(|ui| {
         ui.set_width(240.0);
-        if widgets::popover_title(ui, "Create property") {
+        if widgets::popover_title(ui, app.tr("Create property")) {
             ui.close();
         }
         let w = 150.0;
         let cur = kinds[draft.kind.min(2)].0;
-        widgets::labelled(ui, "Type", |ui| {
+        widgets::labelled(ui, app.tr("Type"), |ui| {
             if let Some(v) = widgets::choice(ui, w, cur, &kinds) {
                 draft.kind = kinds.iter().position(|(k, _)| *k == v).unwrap_or(0);
                 draft.target = None;
@@ -581,7 +587,7 @@ fn add_property_popover(
             })
             .unwrap_or_else(|| "Select a layer".into());
         let names: Vec<String> = candidates.iter().map(|(_, n)| n.clone()).collect();
-        widgets::labelled(ui, "Layer", |ui| {
+        widgets::labelled(ui, app.tr("Layer"), |ui| {
             if let Some(i) = pick(ui, w, &shown, &names) {
                 draft.target = Some(candidates[i].0);
                 if draft.name.is_empty() {
@@ -589,7 +595,7 @@ fn add_property_popover(
                 }
             }
         });
-        widgets::labelled(ui, "Name", |ui| {
+        widgets::labelled(ui, app.tr("Name"), |ui| {
             widgets::field(ui, w, |ui| {
                 ui.add(
                     egui::TextEdit::singleline(&mut draft.name)
@@ -633,7 +639,13 @@ fn enum_name<T: serde::Serialize>(v: T) -> String {
         .unwrap_or_default()
 }
 
-const SIZING: [(&str, &str); 3] = [("fixed", "Fixed"), ("hug", "Hug"), ("fill", "Fill")];
+fn sizing(app: &App) -> [(&'static str, &'static str); 3] {
+    [
+        (app.tr("Fixed"), "fixed"),
+        (app.tr("Hug"), "hug"),
+        (app.tr("Fill"), "fill"),
+    ]
+}
 
 fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
     if !matches!(node.kind, NodeKind::Frame | NodeKind::Component { .. }) {
@@ -663,7 +675,7 @@ fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 8.0;
                 for (key, now) in [(w_key, w_now), (h_key, h_now)] {
-                    if let Some(v) = widgets::choice(ui, half, &enum_name(now), &SIZING[..2]) {
+                    if let Some(v) = widgets::choice(ui, half, &enum_name(now), &sizing(app)[..2]) {
                         app.dispatch("layout.setAutoLayout", json!({ "id": id, key: v }));
                     }
                 }
@@ -672,7 +684,7 @@ fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
                     let mut cols = l.columns() as f64;
-                    let r = widgets::number(ui, widgets::Lead::Text("Columns"), &mut cols, 0.1, "", half);
+                    let r = widgets::number(ui, widgets::Lead::Text(app.tr("Columns")), &mut cols, 0.1, "", half);
                     if r.changed() {
                         app.dispatch(
                             "layout.setAutoLayout",
@@ -680,7 +692,7 @@ fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                         );
                     }
                     let mut rows = f64::from(l.grid_rows);
-                    let r = widgets::number(ui, widgets::Lead::Text("Rows"), &mut rows, 0.1, "", half);
+                    let r = widgets::number(ui, widgets::Lead::Text(app.tr("Rows")), &mut rows, 0.1, "", half);
                     if r.changed() {
                         app.dispatch(
                             "layout.setAutoLayout",
@@ -718,7 +730,7 @@ fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                     crate::design::edit(
                         app,
                         &resp,
-                        "Gap",
+                        app.tr("Gap"),
                         "layout.setAutoLayout",
                         json!({ "id": id, "gap": gap.max(0.0) }),
                     );
@@ -741,7 +753,7 @@ fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                 crate::design::edit(
                     app,
                     &resp,
-                    "Padding",
+                    app.tr("Padding"),
                     "layout.setAutoLayout",
                     json!({ "id": id, "padding": { "top": pd.top, "bottom": pd.bottom, "left": ph.max(0.0), "right": ph.max(0.0) } }),
                 );
@@ -750,7 +762,7 @@ fn auto_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                 crate::design::edit(
                     app,
                     &resp,
-                    "Padding",
+                    app.tr("Padding"),
                     "layout.setAutoLayout",
                     json!({ "id": id, "padding": { "top": pv.max(0.0), "bottom": pv.max(0.0), "left": pd.left, "right": pd.right } }),
                 );
@@ -783,14 +795,14 @@ fn child_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
         let lc = node.layout_child;
         widgets::section(
             ui,
-            "Resizing",
+            app.tr("Resizing"),
             |_| {},
             |ui| {
                 let half = widgets::half(ui);
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
                     for (key, now) in [("horizontal", lc.horizontal), ("vertical", lc.vertical)] {
-                        if let Some(v) = widgets::choice(ui, half, &enum_name(now), &SIZING) {
+                        if let Some(v) = widgets::choice(ui, half, &enum_name(now), &sizing(app)) {
                             app.dispatch("layout.setChild", json!({ "ids": [id], key: v }));
                         }
                     }
@@ -819,18 +831,18 @@ fn child_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
         };
         widgets::section(
             ui,
-            "Constraints",
+            app.tr("Constraints"),
             |_| {},
             |ui| {
                 let half = widgets::half(ui);
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
                     let h = [
-                        ("left", "Left"),
-                        ("right", "Right"),
-                        ("leftRight", "Left and right"),
-                        ("center", "Center"),
-                        ("scale", "Scale"),
+                        ("left", app.tr("Left")),
+                        ("right", app.tr("Right")),
+                        ("leftRight", app.tr("Left and right")),
+                        ("center", app.tr("Center")),
+                        ("scale", app.tr("Scale")),
                     ];
                     if let Some(v) = widgets::choice(ui, half, h_now, &h) {
                         app.dispatch(
@@ -839,11 +851,11 @@ fn child_layout(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                         );
                     }
                     let v = [
-                        ("top", "Top"),
-                        ("bottom", "Bottom"),
-                        ("topBottom", "Top and bottom"),
-                        ("center", "Center"),
-                        ("scale", "Scale"),
+                        ("top", app.tr("Top")),
+                        ("bottom", app.tr("Bottom")),
+                        ("topBottom", app.tr("Top and bottom")),
+                        ("center", app.tr("Center")),
+                        ("scale", app.tr("Scale")),
                     ];
                     if let Some(k) = widgets::choice(ui, half, v_now, &v) {
                         app.dispatch("node.setConstraints", json!({ "ids": [id], "vertical": k }));
@@ -1389,8 +1401,8 @@ fn variables_body(app: &mut App, ui: &mut egui::Ui) {
                                 ("Radius", "cornerRadius"),
                                 ("Width", "width"),
                                 ("Height", "height"),
-                                ("Gap", "gap"),
-                                ("Padding", "padding"),
+                                (app.tr("Gap"), "gap"),
+                                (app.tr("Padding"), "padding"),
                                 ("Text", "textContent"),
                                 ("Visible", "visible"),
                             ] {
@@ -1837,7 +1849,7 @@ pub fn multi_sections(app: &mut App, ui: &mut egui::Ui, nodes: &[Node]) {
     if all_in_layout {
         widgets::section(
             ui,
-            "Resizing",
+            app.tr("Resizing"),
             |_| {},
             |ui| {
                 let half = widgets::half(ui);
@@ -1851,7 +1863,7 @@ pub fn multi_sections(app: &mut App, ui: &mut egui::Ui, nodes: &[Node]) {
                         ("vertical", shared_name(nodes, |n| n.layout_child.vertical)),
                     ];
                     for (key, now) in axes {
-                        if let Some(v) = widgets::choice(ui, half, &now, &SIZING) {
+                        if let Some(v) = widgets::choice(ui, half, &now, &sizing(app)) {
                             app.dispatch("layout.setChild", json!({ "ids": ids, key: v }));
                         }
                     }
@@ -1891,18 +1903,18 @@ pub fn multi_sections(app: &mut App, ui: &mut egui::Ui, nodes: &[Node]) {
         );
         widgets::section(
             ui,
-            "Constraints",
+            app.tr("Constraints"),
             |_| {},
             |ui| {
                 let half = widgets::half(ui);
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
                     let h = [
-                        ("left", "Left"),
-                        ("right", "Right"),
-                        ("leftRight", "Left and right"),
-                        ("center", "Center"),
-                        ("scale", "Scale"),
+                        ("left", app.tr("Left")),
+                        ("right", app.tr("Right")),
+                        ("leftRight", app.tr("Left and right")),
+                        ("center", app.tr("Center")),
+                        ("scale", app.tr("Scale")),
                     ];
                     if let Some(v) = widgets::choice(ui, half, &h_now, &h) {
                         app.dispatch(
@@ -1911,11 +1923,11 @@ pub fn multi_sections(app: &mut App, ui: &mut egui::Ui, nodes: &[Node]) {
                         );
                     }
                     let v = [
-                        ("top", "Top"),
-                        ("bottom", "Bottom"),
-                        ("topBottom", "Top and bottom"),
-                        ("center", "Center"),
-                        ("scale", "Scale"),
+                        ("top", app.tr("Top")),
+                        ("bottom", app.tr("Bottom")),
+                        ("topBottom", app.tr("Top and bottom")),
+                        ("center", app.tr("Center")),
+                        ("scale", app.tr("Scale")),
                     ];
                     if let Some(k) = widgets::choice(ui, half, &v_now, &v) {
                         app.dispatch("node.setConstraints", json!({ "ids": ids, "vertical": k }));
@@ -1966,7 +1978,7 @@ fn multi_auto_layout(app: &mut App, ui: &mut egui::Ui, nodes: &[Node], ids: &[No
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 8.0;
                     for key in [w_key, h_key] {
-                        if let Some(v) = widgets::choice(ui, half, &now(key), &SIZING[..2]) {
+                        if let Some(v) = widgets::choice(ui, half, &now(key), &sizing(app)[..2]) {
                             dispatch_each(
                                 app,
                                 "Sizing",
@@ -2004,7 +2016,8 @@ fn multi_auto_layout(app: &mut App, ui: &mut egui::Ui, nodes: &[Node], ids: &[No
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 8.0;
                 let gaps = shared_f64(nodes.iter().map(|n| layout(n).gap));
-                let (resp, v) = widgets::number_mixed(ui, "Gap", gaps, layout(&nodes[0]).gap, half);
+                let (resp, v) =
+                    widgets::number_mixed(ui, app.tr("Gap"), gaps, layout(&nodes[0]).gap, half);
                 if let Some(v) = v {
                     let steps = ids
                         .iter()
@@ -2015,7 +2028,7 @@ fn multi_auto_layout(app: &mut App, ui: &mut egui::Ui, nodes: &[Node], ids: &[No
                             )
                         })
                         .collect();
-                    crate::design::edit_each(app, &resp, "Gap", steps);
+                    crate::design::edit_each(app, &resp, app.tr("Gap"), steps);
                 }
             });
             ui.horizontal(|ui| {
@@ -2034,7 +2047,7 @@ fn multi_auto_layout(app: &mut App, ui: &mut egui::Ui, nodes: &[Node], ids: &[No
                             ("layout.setAutoLayout".to_owned(), json!({ "id": n.id, "padding": { "top": p.top, "bottom": p.bottom, "left": v.max(0.0), "right": v.max(0.0) } }))
                         })
                         .collect();
-                    crate::design::edit_each(app, &resp, "Padding", steps);
+                    crate::design::edit_each(app, &resp, app.tr("Padding"), steps);
                 }
                 let pv = shared_f64(nodes.iter().flat_map(|n| {
                     let p = layout(n).padding;
@@ -2049,7 +2062,7 @@ fn multi_auto_layout(app: &mut App, ui: &mut egui::Ui, nodes: &[Node], ids: &[No
                             ("layout.setAutoLayout".to_owned(), json!({ "id": n.id, "padding": { "top": v.max(0.0), "bottom": v.max(0.0), "left": p.left, "right": p.right } }))
                         })
                         .collect();
-                    crate::design::edit_each(app, &resp, "Padding", steps);
+                    crate::design::edit_each(app, &resp, app.tr("Padding"), steps);
                 }
             });
         },

@@ -50,11 +50,11 @@ fn load_preview(app: &mut App, ctx: &egui::Context, id: u64) -> Option<egui::Tex
     Some(ctx.load_texture(format!("version:{id}"), image, egui::TextureOptions::LINEAR))
 }
 
-fn diff_summary(d: &Value) -> String {
+fn diff_summary(app: &App, d: &Value) -> String {
     let n = |k: &str| d[k].as_array().map_or(0, Vec::len);
     let (a, r, c) = (n("added"), n("removed"), n("changed"));
     if a + r + c == 0 {
-        return "Same as now.".to_owned();
+        return app.tr("Same as now.").to_owned();
     }
     let mut parts = Vec::new();
     if a > 0 {
@@ -80,7 +80,7 @@ pub(crate) fn window(app: &mut App, ctx: &egui::Context) {
         .session
         .dispatch("version.list", &json!({}))
         .unwrap_or_else(|_| json!([]));
-    egui::Window::new("Version history")
+    egui::Window::new(app.tr("Version history"))
         .open(&mut open)
         .default_width(320.0)
         .resizable(true)
@@ -100,8 +100,10 @@ pub(crate) fn window(app: &mut App, ctx: &egui::Context) {
             let versions = list.as_array().cloned().unwrap_or_default();
             if versions.is_empty() {
                 ui.label(
-                    egui::RichText::new("No saved versions. Save one to come back to it later.")
-                        .color(TOKENS.text_secondary),
+                    egui::RichText::new(
+                        app.tr("No saved versions. Save one to come back to it later."),
+                    )
+                    .color(TOKENS.text_secondary),
                 );
             }
             egui::ScrollArea::vertical()
@@ -151,7 +153,7 @@ pub(crate) fn window(app: &mut App, ctx: &egui::Context) {
                     );
                 }
                 if let Some(d) = &app.history.diff {
-                    ui.label(diff_summary(d));
+                    ui.label(diff_summary(app, d));
                 }
                 ui.horizontal(|ui| {
                     if widgets::primary(ui, "Restore").clicked() {
@@ -197,12 +199,16 @@ mod tests {
 
     #[test]
     fn the_diff_reads_as_what_restoring_does() {
+        let app = App::new(deesainer_engine::Session::new().expect("a fresh session"));
         assert_eq!(
-            diff_summary(&json!({"added": [], "removed": [], "changed": []})),
+            diff_summary(&app, &json!({"added": [], "removed": [], "changed": []})),
             "Same as now."
         );
         assert_eq!(
-            diff_summary(&json!({"added": [1], "removed": [], "changed": [1, 2]})),
+            diff_summary(
+                &app,
+                &json!({"added": [1], "removed": [], "changed": [1, 2]})
+            ),
             "Restoring it: 1 layer(s) come back, 2 layer(s) change."
         );
     }

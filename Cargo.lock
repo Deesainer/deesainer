@@ -552,7 +552,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 
 [[package]]
 name = "deesainer"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-automation",
@@ -563,6 +563,7 @@ dependencies = [
  "deesainer-geom",
  "deesainer-plugins",
  "deesainer-render",
+ "deesainer-text",
  "deesainer-ui",
  "eframe",
  "egui",
@@ -573,7 +574,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-algo"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-doc",
@@ -582,7 +583,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-automation"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-doc",
@@ -603,7 +604,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-cli"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-automation",
@@ -624,7 +625,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-color"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "serde",
  "thiserror 1.0.69",
@@ -632,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-doc"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-geom",
@@ -643,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-engine"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "blake3",
@@ -669,7 +670,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-figfile"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "miniz_oxide 0.9.1",
  "ruzstd",
@@ -679,7 +680,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-format"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "blake3",
  "deesainer-color",
@@ -692,14 +693,14 @@ dependencies = [
 
 [[package]]
 name = "deesainer-geom"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "deesainer-gpu"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-doc",
@@ -713,7 +714,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-handoff"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-doc",
@@ -724,7 +725,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-io"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-color",
@@ -745,7 +746,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-mesh"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-doc",
@@ -758,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-ops"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-color",
@@ -770,7 +771,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-plugins"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -780,7 +781,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-relay"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-automation",
  "deesainer-engine",
@@ -795,7 +796,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-render"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-algo",
  "deesainer-color",
@@ -809,7 +810,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-server"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -827,7 +828,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-sync"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-color",
@@ -841,7 +842,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-teamserver"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-automation",
  "deesainer-engine",
@@ -852,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-text"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "cosmic-text",
  "deesainer-color",
@@ -864,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-tools"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-doc",
@@ -875,7 +876,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-ui"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "base64 0.22.1",
  "deesainer-algo",
@@ -897,7 +898,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-vector"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-doc",
@@ -907,7 +908,7 @@ dependencies = [
 
 [[package]]
 name = "deesainer-web"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-color",
  "deesainer-engine",
@@ -4670,7 +4671,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xtask"
-version = "1.1.0-beta.1"
+version = "1.1.0-beta.2"
 dependencies = [
  "deesainer-engine",
  "deesainer-io",

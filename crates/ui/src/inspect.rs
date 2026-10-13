@@ -77,7 +77,7 @@ fn swatch_row(ui: &mut Ui, label: &str, hex: Option<&str>, detail: &str) {
     });
 }
 
-fn paint_rows(ui: &mut Ui, paints: &Value) {
+fn paint_rows(app: &App, ui: &mut Ui, paints: &Value) {
     for p in paints.as_array().into_iter().flatten() {
         let opacity = p["opacity"].as_f64().unwrap_or(1.0);
         let pct = format!("{}%", widgets::trim(opacity * 100.0));
@@ -88,9 +88,9 @@ fn paint_rows(ui: &mut Ui, paints: &Value) {
             }
             Some(kind @ ("linearGradient" | "radialGradient")) => {
                 let name = if kind == "linearGradient" {
-                    "Linear"
+                    app.tr("Linear")
                 } else {
-                    "Radial"
+                    app.tr("Radial")
                 };
                 swatch_row(ui, &format!("{name} gradient"), None, &pct);
                 for s in p["stops"].as_array().into_iter().flatten() {
@@ -117,9 +117,9 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
         .auto_shrink([false, false])
         .show(ui, |ui| {
             if ids.is_empty() {
-                widgets::section(ui, "Inspect", |_| {}, |ui| {
+                widgets::section(ui, app.tr("Inspect"), |_| {}, |ui| {
                     ui.label(
-                        RichText::new("Select a layer to see its measurements, styles and code. Select two to measure the distance between them.")
+                        RichText::new(app.tr("Select a layer to see its measurements, styles and code. Select two to measure the distance between them."))
                             .color(TOKENS.text_secondary),
                     );
                 });
@@ -128,15 +128,15 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
             if let Some(m) = app.inspect.measure.clone() {
                 widgets::section(ui, "Distance", |_| {}, |ui| match m["relation"].as_str() {
                     Some("apart") => {
-                        row(ui, "Horizontal", num(&m["horizontalGap"]));
-                        row(ui, "Vertical", num(&m["verticalGap"]));
+                        row(ui, app.tr("Horizontal"), num(&m["horizontalGap"]));
+                        row(ui, app.tr("Vertical"), num(&m["verticalGap"]));
                     }
                     Some(rel @ ("inside" | "contains")) => {
                         ui.label(
                             RichText::new(if rel == "inside" {
-                                "First layer inside the second"
+                                app.tr("First layer inside the second")
                             } else {
-                                "Second layer inside the first"
+                                app.tr("Second layer inside the first")
                             })
                             .color(TOKENS.text_secondary),
                         );
@@ -160,9 +160,9 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
             if let [id] = ids.as_slice() {
                 annotations(app, ui, *id);
             }
-            widgets::section(ui, "Layout", |_| {}, |ui| {
-                row(ui, "Width", num(&spec["width"]));
-                row(ui, "Height", num(&spec["height"]));
+            widgets::section(ui, app.tr("Layout"), |_| {}, |ui| {
+                row(ui, app.tr("Width"), num(&spec["width"]));
+                row(ui, app.tr("Height"), num(&spec["height"]));
                 row(ui, "X", num(&spec["x"]));
                 row(ui, "Y", num(&spec["y"]));
                 if spec["rotation"].as_f64().is_some_and(|r| r != 0.0) {
@@ -177,11 +177,11 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                     row(ui, "Opacity", format!("{}%", widgets::trim(spec["opacity"].as_f64().unwrap_or(1.0) * 100.0)));
                 }
                 if let Some(b) = spec["blend"].as_str() {
-                    row(ui, "Blend", b);
+                    row(ui, app.tr("Blend"), b);
                 }
                 if let Some(l) = spec["layout"].as_object() {
                     let dir = if l.get("direction").and_then(Value::as_str) == Some("row") { "Horizontal" } else { "Vertical" };
-                    row(ui, "Auto layout", dir);
+                    row(ui, app.tr("Auto layout"), dir);
                     row(ui, "Gap", l.get("gap").map(num).unwrap_or_default());
                     if let Some(p) = l.get("padding").and_then(Value::as_array) {
                         row(ui, "Padding", p.iter().map(num).collect::<Vec<_>>().join(" "));
@@ -191,7 +191,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                         l.get("primaryAlign").and_then(Value::as_str).unwrap_or(""),
                         l.get("counterAlign").and_then(Value::as_str).unwrap_or("")
                     );
-                    row(ui, "Align", align);
+                    row(ui, app.tr("Align"), align);
                 }
                 if let Some(l) = spec["inLayout"].as_object() {
                     let sizing = format!(
@@ -199,7 +199,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                         l.get("horizontal").and_then(Value::as_str).unwrap_or(""),
                         l.get("vertical").and_then(Value::as_str).unwrap_or("")
                     );
-                    row(ui, "Resizing", sizing);
+                    row(ui, app.tr("Resizing"), sizing);
                 }
                 if let Some(c) = spec["constraints"].as_array() {
                     let c: Vec<&str> = c.iter().filter_map(Value::as_str).collect();
@@ -209,7 +209,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
             let styles = spec["styles"].as_array().cloned().unwrap_or_default();
             let variables = spec["variables"].as_array().cloned().unwrap_or_default();
             if !styles.is_empty() || !variables.is_empty() {
-                widgets::section(ui, "Styles and variables", |_| {}, |ui| {
+                widgets::section(ui, app.tr("Styles and variables"), |_| {}, |ui| {
                     for s in &styles {
                         row(ui, s["property"].as_str().unwrap_or(""), s["name"].as_str().unwrap_or(""));
                     }
@@ -224,11 +224,11 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                 });
             }
             if spec["fills"].as_array().is_some_and(|f| !f.is_empty()) {
-                widgets::section(ui, "Fill", |_| {}, |ui| paint_rows(ui, &spec["fills"]));
+                widgets::section(ui, app.tr("Fill"), |_| {}, |ui| paint_rows(app, ui, &spec["fills"]));
             }
             if let Some(st) = spec["stroke"].as_object() {
-                widgets::section(ui, "Stroke", |_| {}, |ui| {
-                    paint_rows(ui, &spec["strokes"]);
+                widgets::section(ui, app.tr("Stroke"), |_| {}, |ui| {
+                    paint_rows(app, ui, &spec["strokes"]);
                     row(ui, "Weight", st.get("weight").map(num).unwrap_or_default());
                     row(ui, "Position", st.get("align").and_then(Value::as_str).unwrap_or(""));
                     if let Some(d) = st.get("dash").and_then(Value::as_array).filter(|d| !d.is_empty()) {
@@ -237,7 +237,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                 });
             }
             if spec["effects"].as_array().is_some_and(|e| !e.is_empty()) {
-                widgets::section(ui, "Effects", |_| {}, |ui| {
+                widgets::section(ui, app.tr("Effects"), |_| {}, |ui| {
                     for e in spec["effects"].as_array().into_iter().flatten() {
                         let kind = e["kind"].as_str().unwrap_or("");
                         let detail = if kind.ends_with("Blur") {
@@ -246,10 +246,10 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                             format!("{}, {} · blur {} · spread {}", num(&e["x"]), num(&e["y"]), num(&e["blur"]), num(&e["spread"]))
                         };
                         let label = match kind {
-                            "dropShadow" => "Drop shadow",
-                            "innerShadow" => "Inner shadow",
-                            "layerBlur" => "Layer blur",
-                            "backgroundBlur" => "Background blur",
+                            "dropShadow" => app.tr("Drop shadow"),
+                            "innerShadow" => app.tr("Inner shadow"),
+                            "layerBlur" => app.tr("Layer blur"),
+                            "backgroundBlur" => app.tr("Background blur"),
                             other => other,
                         };
                         swatch_row(ui, label, e["color"].as_str(), &detail);
@@ -257,13 +257,13 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                 });
             }
             if let Some(t) = spec["text"].as_object() {
-                widgets::section(ui, "Typography", |_| {}, |ui| {
+                widgets::section(ui, app.tr("Typography"), |_| {}, |ui| {
                     row(ui, "Font", t.get("fontFamily").and_then(Value::as_str).unwrap_or(""));
                     row(ui, "Size", t.get("fontSize").map(num).unwrap_or_default());
                     row(ui, "Weight", t.get("fontWeight").map(num).unwrap_or_default());
                     row(
                         ui,
-                        "Line height",
+                        app.tr("Line height"),
                         t.get("lineHeight").filter(|v| !v.is_null()).map_or_else(|| "Auto".to_owned(), num),
                     );
                     row(ui, "Letter spacing", t.get("letterSpacing").map(num).unwrap_or_default());
@@ -271,7 +271,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
                 });
             }
             if let Some(c) = spec["component"].as_object() {
-                widgets::section(ui, "Component", |_| {}, |ui| {
+                widgets::section(ui, app.tr("Component"), |_| {}, |ui| {
                     row(ui, "Main", c.get("main").and_then(Value::as_str).unwrap_or(""));
                     for pair in c.get("variant").and_then(Value::as_array).into_iter().flatten() {
                         row(ui, pair[0].as_str().unwrap_or(""), pair[1].as_str().unwrap_or(""));
@@ -280,7 +280,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
             }
             let id = ids.first().copied();
             let assets = spec["assets"].as_array().cloned().unwrap_or_default();
-            widgets::section(ui, "Assets", |_| {}, |ui| {
+            widgets::section(ui, app.tr("Assets"), |_| {}, |ui| {
                 for a in &assets {
                     let asset = a["asset"].as_str().unwrap_or("").to_owned();
                     let size = match (a["width"].as_u64(), a["height"].as_u64()) {
@@ -311,7 +311,7 @@ pub(crate) fn panel(app: &mut App, ui: &mut Ui) {
             let code = app.inspect.code.clone();
             widgets::section(
                 ui,
-                "Code",
+                app.tr("Code"),
                 |ui| {
                     if ui.button("Copy").clicked() {
                         ui.ctx().copy_text(code.clone());

@@ -36,7 +36,7 @@ impl Args {
         while i < raw.len() {
             let a = &raw[i];
             if let Some(name) = a.strip_prefix("--") {
-                let takes_value = !matches!(name, "save" | "save-token");
+                let takes_value = !matches!(name, "save" | "save-token" | "standalone");
                 let value = if takes_value {
                     raw.get(i + 1).cloned()
                 } else {
@@ -314,6 +314,36 @@ fn run() -> CliResult<()> {
                     std::time::Duration::from_secs(10),
                 )?;
                 McpServer::new(synced, "deesainer").run_stdio()?;
+            } else if !args.has("standalone") {
+                if let Some((port, token_file)) =
+                    deesainer_automation::control_server::read_pointer()
+                {
+                    let addr = format!("127.0.0.1:{port}");
+                    let token = std::fs::read_to_string(&token_file)
+                        .map_err(|e| {
+                            format!(
+                                "the app published a control server but its token file {} is unreadable: {e}",
+                                token_file.display()
+                            )
+                        })?
+                        .trim()
+                        .to_owned();
+                    let client = deesainer_automation::control_server::ControlClient::connect(
+                        &addr, &token,
+                    )
+                    .map_err(|e| {
+                        deesainer_automation::control_server::clear_pointer();
+                        format!(
+                            "the app at {addr} did not answer ({e}); start Deesainer or run `deesainer-cli mcp --standalone`"
+                        )
+                    })?;
+                    McpServer::new(client, "deesainer").run_stdio()?;
+                } else {
+                    let mut session = session_for(args.flag("file"))?;
+                    session.set_clock(deesainer_automation::now_rfc3339);
+                    session.set_user(args.flag("name").unwrap_or("Agent"));
+                    McpServer::new(session, "deesainer").run_stdio()?;
+                }
             } else {
                 let mut session = session_for(args.flag("file"))?;
                 session.set_clock(deesainer_automation::now_rfc3339);

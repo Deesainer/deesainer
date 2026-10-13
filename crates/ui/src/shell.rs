@@ -25,11 +25,11 @@ pub fn rail(app: &mut App, ui: &mut Ui) {
             .show(|ui| menu::main_menu(app, ui));
         ui.add_space(8.0);
         let has_ai = app.extensions.iter().any(|e| e.sidebar_title().is_some());
-        let mut tabs = vec![(LeftTab::Layers, Icon::Layers, "File")];
+        let mut tabs = vec![(LeftTab::Layers, Icon::Layers, app.tr("File"))];
         if has_ai {
-            tabs.push((LeftTab::Extension, Icon::Sparkle, "AI assistant"));
+            tabs.push((LeftTab::Extension, Icon::Sparkle, app.tr("AI assistant")));
         }
-        tabs.push((LeftTab::Assets, Icon::Assets, "Assets"));
+        tabs.push((LeftTab::Assets, Icon::Assets, app.tr("Assets")));
         for (tab, icon, tip) in tabs {
             let active = app.show_layers && app.left_tab == tab;
             if icons::tile(ui, icon, active, tip).clicked() {
@@ -145,12 +145,12 @@ pub fn right_header(app: &mut App, ui: &mut Ui) {
         ui.spacing_mut().item_spacing.x = 2.0;
         if app.placing_comment {
             ui.add_space(4.0);
-            ui.label(egui::RichText::new("Comments").font(theme::strong()));
+            ui.label(egui::RichText::new(app.tr("Comments")).font(theme::strong()));
         } else {
             for (tab, label) in [
-                (RightTab::Design, "Design"),
-                (RightTab::Prototype, "Prototype"),
-                (RightTab::Inspect, "Inspect"),
+                (RightTab::Design, app.tr("Design")),
+                (RightTab::Prototype, app.tr("Prototype")),
+                (RightTab::Inspect, app.tr("Inspect")),
             ] {
                 if widgets::tab(ui, label, app.right_tab == tab).clicked() {
                     app.right_tab = tab;
@@ -244,7 +244,16 @@ pub fn zoom_menu(app: &mut App, ui: &mut Ui) {
         app.show_prototype = !app.show_prototype;
         ui.close();
     }
-    if widgets::menu_item(ui, Some(app.show_comments), None, "Comments", "⇧C", true).clicked() {
+    if widgets::menu_item(
+        ui,
+        Some(app.show_comments),
+        None,
+        app.tr("Comments"),
+        "⇧C",
+        true,
+    )
+    .clicked()
+    {
         app.show_comments = !app.show_comments;
         ui.close();
     }
@@ -317,7 +326,10 @@ pub fn toolbar(app: &mut App, ctx: &egui::Context, canvas: Rect) {
                         let (r, _) = ui.allocate_exact_size(vec2(1.0, 24.0), Sense::hover());
                         ui.painter().rect_filled(r, 0.0, TOKENS.border);
                         ui.add_space(6.0);
-                        let modes = [(Icon::Design, "Design"), (Icon::Prototype, "Prototype")];
+                        let modes = [
+                            (Icon::Design, app.tr("Design")),
+                            (Icon::Prototype, app.tr("Prototype")),
+                        ];
                         let sel = match app.right_tab {
                             RightTab::Design => Some(0),
                             RightTab::Prototype => Some(1),

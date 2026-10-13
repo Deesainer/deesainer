@@ -15,12 +15,13 @@ pub fn panel(app: &mut App, ui: &mut egui::Ui) {
     pages(app, ui);
     widgets::divider(ui);
     let mut collapse = false;
-    widgets::header(ui, "Layers", |ui| {
-        collapse = icons::button(ui, Icon::Collapse, false, "Collapse layers (⌥L)").clicked();
+    widgets::header(ui, app.tr("Layers"), |ui| {
+        collapse =
+            icons::button(ui, Icon::Collapse, false, app.tr("Collapse layers (⌥L)")).clicked();
     });
     if collapse {
         app.expanded.clear();
-        app.info("Layers collapsed");
+        app.info(app.tr("Layers collapsed"));
     }
     let doc = app.session.snapshot();
     let current = app.session.current_page();
@@ -35,7 +36,7 @@ pub fn panel(app: &mut App, ui: &mut egui::Ui) {
                 if page.children.is_empty() {
                     ui.add_space(8.0);
                     ui.label(
-                        egui::RichText::new("No layers yet. Press F to draw a frame.")
+                        egui::RichText::new(app.tr("No layers yet. Press F to draw a frame."))
                             .color(TOKENS.text_secondary),
                     );
                 }
@@ -46,8 +47,8 @@ pub fn panel(app: &mut App, ui: &mut egui::Ui) {
 fn pages(app: &mut App, ui: &mut egui::Ui) {
     widgets::divider(ui);
     let mut add = false;
-    widgets::header(ui, "Pages", |ui| {
-        add = icons::button(ui, Icon::Plus, false, "Add new page").clicked();
+    widgets::header(ui, app.tr("Pages"), |ui| {
+        add = icons::button(ui, Icon::Plus, false, app.tr("Add new page")).clicked();
     });
     if add {
         app.dispatch("page.create", json!({}));
@@ -90,19 +91,19 @@ fn pages(app: &mut App, ui: &mut egui::Ui) {
         let single = doc.pages().len() < 2;
         widgets::context_menu(&resp, |ui| {
             ui.set_min_width(180.0);
-            if widgets::menu_item(ui, None, None, "Rename page", "", true).clicked() {
+            if widgets::menu_item(ui, None, None, app.tr("Rename page"), "", true).clicked() {
                 app.renaming = Some((
                     *page,
                     doc.get(*page).map(|n| n.name.clone()).unwrap_or_default(),
                 ));
                 ui.close();
             }
-            if widgets::menu_item(ui, None, None, "Duplicate page", "", true).clicked() {
+            if widgets::menu_item(ui, None, None, app.tr("Duplicate page"), "", true).clicked() {
                 app.dispatch("page.duplicate", json!({ "id": page }));
                 ui.close();
             }
             widgets::menu_separator(ui);
-            if widgets::menu_item(ui, None, None, "Delete page", "", !single).clicked() {
+            if widgets::menu_item(ui, None, None, app.tr("Delete page"), "", !single).clicked() {
                 app.dispatch("page.delete", json!({ "id": page }));
                 app.fitted = false;
                 ui.close();
@@ -260,7 +261,7 @@ fn row(app: &mut App, ui: &mut egui::Ui, id: NodeId, depth: usize) {
     if hovered || !node.visible {
         let e = ui
             .interact(eye_rect, ui.id().with(("eye", id)), Sense::click())
-            .tip("Show/Hide (⇧⌘H)");
+            .tip(app.tr("Show/Hide (⇧⌘H)"));
         let icon = if node.visible {
             Icon::Eye
         } else {
@@ -274,7 +275,7 @@ fn row(app: &mut App, ui: &mut egui::Ui, id: NodeId, depth: usize) {
     if hovered || node.locked {
         let l = ui
             .interact(lock_rect, ui.id().with(("lock", id)), Sense::click())
-            .tip("Lock/Unlock (⇧⌘L)");
+            .tip(app.tr("Lock/Unlock (⇧⌘L)"));
         let color = if node.locked {
             TOKENS.text_secondary
         } else {

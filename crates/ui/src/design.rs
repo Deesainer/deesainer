@@ -125,16 +125,16 @@ fn multi_geometry(app: &mut App, ui: &mut egui::Ui, nodes: &[Node]) {
                             ),
                         })
                         .collect();
-                    edit_each(app, &resp, "Edit selection", steps);
+                    edit_each(app, &resp, app.tr("Edit selection"), steps);
                 } else {
-                    edit_each(app, &resp, "Edit selection", Vec::new());
+                    edit_each(app, &resp, app.tr("Edit selection"), Vec::new());
                 }
             }
         });
     };
     widgets::section(
         ui,
-        "Position",
+        app.tr("Position"),
         |_| {},
         |ui| {
             align_row(app, ui);
@@ -164,7 +164,7 @@ fn multi_typography(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], nodes: &[N
     let families = app.font_families();
     widgets::section(
         ui,
-        "Typography",
+        app.tr("Typography"),
         |_| {},
         |ui| {
             let full = widgets::half(ui) * 2.0 + 8.0;
@@ -205,38 +205,44 @@ fn multi_typography(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], nodes: &[N
                     }
                 });
                 let sizes: Vec<f64> = styles.iter().map(|s| s.font_size).collect();
-                let (resp, v) = widgets::number_mixed(ui, "Size", common(&sizes), sizes[0], half);
+                let (resp, v) =
+                    widgets::number_mixed(ui, app.tr("Size"), common(&sizes), sizes[0], half);
                 if let Some(v) = v {
                     edit_each(
                         app,
                         &resp,
-                        "Font size",
+                        app.tr("Font size"),
                         vec![(
                             "text.setStyle".into(),
                             json!({ "ids": ids, "fontSize": v.max(0.5) }),
                         )],
                     );
                 } else {
-                    edit_each(app, &resp, "Font size", Vec::new());
+                    edit_each(app, &resp, app.tr("Font size"), Vec::new());
                 }
             });
             let spacing: Vec<f64> = styles.iter().map(|s| s.letter_spacing).collect();
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 8.0;
-                let (resp, v) =
-                    widgets::number_mixed(ui, "Tracking", common(&spacing), spacing[0], half);
+                let (resp, v) = widgets::number_mixed(
+                    ui,
+                    app.tr("Tracking"),
+                    common(&spacing),
+                    spacing[0],
+                    half,
+                );
                 if let Some(v) = v {
                     edit_each(
                         app,
                         &resp,
-                        "Letter spacing",
+                        app.tr("Letter spacing"),
                         vec![(
                             "text.setStyle".into(),
                             json!({ "ids": ids, "letterSpacing": v }),
                         )],
                     );
                 } else {
-                    edit_each(app, &resp, "Letter spacing", Vec::new());
+                    edit_each(app, &resp, app.tr("Letter spacing"), Vec::new());
                 }
             });
             let align = nodes
@@ -334,11 +340,11 @@ pub fn prototype_panel(app: &mut App, ui: &mut egui::Ui) {
                     return;
                 }
             }
-            widgets::section(ui, "Device", |_| {}, |ui| {
+            widgets::section(ui, app.tr("Device"), |_| {}, |ui| {
                 let page = app.session.current_page();
                 let current = doc.get(page).map(|p| p.device).unwrap_or_default();
                 let keys = ["none", "phone", "tablet", "browser"];
-                let labels = ["None", "Phone", "Tablet", "Browser window"];
+                let labels = [app.tr("None"), app.tr("Phone"), app.tr("Tablet"), app.tr("Browser window")];
                 let cur = keys
                     .iter()
                     .position(|k| *k == enum_str(current))
@@ -354,12 +360,12 @@ pub fn prototype_panel(app: &mut App, ui: &mut egui::Ui) {
                     }
                 });
             });
-            widgets::section(ui, "Flows", |_| {}, |ui| {
+            widgets::section(ui, app.tr("Flows"), |_| {}, |ui| {
                 let page = app.session.current_page();
                 let starts = deesainer_tools::proto::flow_starts(&doc, page);
                 if starts.is_empty() {
                     ui.label(
-                        egui::RichText::new("Select a top-level frame to add a starting point and interactions.")
+                        egui::RichText::new(app.tr("Select a top-level frame to add a starting point and interactions."))
                             .color(crate::theme::TOKENS.text_secondary),
                     );
                 }
@@ -373,7 +379,7 @@ pub fn prototype_panel(app: &mut App, ui: &mut egui::Ui) {
                     });
                 }
             });
-            widgets::section(ui, "Prototype settings", |_| {}, |ui| {
+            widgets::section(ui, app.tr("Prototype settings"), |_| {}, |ui| {
                 ui.checkbox(&mut app.show_prototype, "Show connections on canvas");
                 if ui.button("Present").clicked() {
                     crate::player::present(app);
@@ -387,7 +393,7 @@ fn page_section(app: &mut App, ui: &mut egui::Ui) {
     let mut c = color32(deesainer_render::page_background(app.session.doc(), page));
     widgets::section(
         ui,
-        "Page",
+        app.tr("Page"),
         |_| {},
         |ui| {
             ui.horizontal(|ui| {
@@ -435,8 +441,8 @@ fn align_row(app: &mut App, ui: &mut egui::Ui) {
         }
         if app.session.selection().len() > 2 {
             let d = [
-                (Icon::DistributeH, "Distribute horizontal spacing"),
-                (Icon::DistributeV, "Distribute vertical spacing"),
+                (Icon::DistributeH, app.tr("Distribute horizontal spacing")),
+                (Icon::DistributeV, app.tr("Distribute vertical spacing")),
             ];
             if let Some(i) = widgets::segmented(ui, &d, None, 24.0) {
                 let cmd = ["distribute.horizontal", "distribute.vertical"][i];
@@ -446,9 +452,9 @@ fn align_row(app: &mut App, ui: &mut egui::Ui) {
     });
 }
 
-fn display_type(kind: &NodeKind) -> String {
+fn display_type(app: &App, kind: &NodeKind) -> String {
     let raw = match kind {
-        NodeKind::BooleanOp { .. } => "boolean group",
+        NodeKind::BooleanOp { .. } => app.tr("boolean group"),
         k => k.type_name(),
     };
     let mut out = String::new();
@@ -466,14 +472,14 @@ fn display_type(kind: &NodeKind) -> String {
 }
 
 fn selection_actions(app: &mut App, ui: &mut egui::Ui) {
-    let more = icons::button(ui, Icon::More, false, "More actions");
+    let more = icons::button(ui, Icon::More, false, app.tr("More actions"));
     crate::widgets::menu(&more).show(|ui| {
         for (label, cmd, key) in [
-            ("Union", "object.booleanUnion", "⌥⇧U"),
-            ("Subtract", "object.booleanSubtract", "⌥⇧S"),
-            ("Intersect", "object.booleanIntersect", "⌥⇧I"),
-            ("Exclude", "object.booleanExclude", "⌥⇧E"),
-            ("Flatten", "object.flatten", "⌘E"),
+            (app.tr("Union"), "object.booleanUnion", "⌥⇧U"),
+            (app.tr("Subtract"), "object.booleanSubtract", "⌥⇧S"),
+            (app.tr("Intersect"), "object.booleanIntersect", "⌥⇧I"),
+            (app.tr("Exclude"), "object.booleanExclude", "⌥⇧E"),
+            (app.tr("Flatten"), "object.flatten", "⌘E"),
         ] {
             let enabled = app.session.is_enabled(cmd);
             if widgets::menu_item(ui, None, Some(Icon::Boolean), label, key, enabled).clicked() {
@@ -483,8 +489,12 @@ fn selection_actions(app: &mut App, ui: &mut egui::Ui) {
         }
         widgets::menu_separator(ui);
         for (label, cmd, key) in [
-            ("Group selection", "object.group", "⌘G"),
-            ("Combine as variants", "component.combineAsVariants", ""),
+            (app.tr("Group selection"), "object.group", "⌘G"),
+            (
+                app.tr("Combine as variants"),
+                "component.combineAsVariants",
+                "",
+            ),
         ] {
             let enabled = app.session.is_enabled(cmd);
             if widgets::menu_item(ui, None, None, label, key, enabled).clicked() {
@@ -499,16 +509,21 @@ fn selection_actions(app: &mut App, ui: &mut egui::Ui) {
 }
 
 fn node_sections(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
-    widgets::title_row(ui, &display_type(&node.kind), |ui| {
+    widgets::title_row(ui, &display_type(app, &node.kind), |ui| {
         selection_actions(app, ui)
     });
     widgets::section(
         ui,
-        "Position",
+        app.tr("Position"),
         |_| {},
         |ui| position_body(app, ui, id, node),
     );
-    widgets::section(ui, "Layout", |_| {}, |ui| layout_body(app, ui, id, node));
+    widgets::section(
+        ui,
+        app.tr("Layout"),
+        |_| {},
+        |ui| layout_body(app, ui, id, node),
+    );
     layer_section(app, ui, &[id], node);
     if let NodeKind::Text(_) = node.kind {
         text_section(app, ui, id, node);
@@ -1966,7 +1981,7 @@ fn text_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
     let mut settings = None;
     widgets::section(
         ui,
-        "Typography",
+        app.tr("Typography"),
         |ui| settings = Some(icons::button(ui, Icon::Sliders, false, "Type settings")),
         |ui| {
             let full = widgets::half(ui) * 2.0 + 8.0;

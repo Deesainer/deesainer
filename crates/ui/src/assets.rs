@@ -132,9 +132,9 @@ pub fn panel(app: &mut App, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             if sources.is_empty() {
                 let text = if q.trim().is_empty() {
-                    "No components yet. Select layers and press ⌥⌘K."
+                    app.tr("No components yet. Select layers and press ⌥⌘K.")
                 } else {
-                    "No components match."
+                    app.tr("No components match.")
                 };
                 ui.label(egui::RichText::new(text).color(TOKENS.text_secondary));
                 return;

@@ -9,15 +9,15 @@ pub(crate) struct LintView {
     cached: Option<(u64, Value)>,
 }
 
-fn rule_label(rule: &str) -> &'static str {
+fn rule_label(app: &App, rule: &str) -> &'static str {
     match rule {
-        "detachedPaint" => "Paint style not used",
-        "detachedText" => "Text style not used",
-        "rawValue" => "Raw value",
-        "offPixelGrid" => "Off the pixel grid",
-        "hiddenLayer" => "Hidden layer",
-        "emptyFrame" => "Empty frame",
-        _ => "Check",
+        "detachedPaint" => app.tr("Paint style not used"),
+        "detachedText" => app.tr("Text style not used"),
+        "rawValue" => app.tr("Raw value"),
+        "offPixelGrid" => app.tr("Off the pixel grid"),
+        "hiddenLayer" => app.tr("Hidden layer"),
+        "emptyFrame" => app.tr("Empty frame"),
+        _ => app.tr("Check"),
     }
 }
 
@@ -42,7 +42,7 @@ pub(crate) fn window(app: &mut App, ctx: &egui::Context) {
     let mut open = true;
     let mut select = None;
     let mut fix: Option<Value> = None;
-    egui::Window::new("Design checks")
+    egui::Window::new(app.tr("Design checks"))
         .open(&mut open)
         .default_width(340.0)
         .show(ctx, |ui| {
@@ -68,7 +68,7 @@ pub(crate) fn window(app: &mut App, ctx: &egui::Context) {
                             let rule = issue["rule"].as_str().unwrap_or("");
                             let text = format!(
                                 "{} · {}\n{}",
-                                rule_label(rule),
+                                rule_label(app, rule),
                                 issue["name"].as_str().unwrap_or(""),
                                 issue["message"].as_str().unwrap_or("")
                             );

@@ -3,12 +3,14 @@ mod canvas;
 mod chat;
 mod inspect;
 pub use canvas::attach_wgpu;
+pub use i18n::Language;
 mod comments;
 mod connect;
 mod design;
 mod design_ext;
 mod eyedropper;
 mod history;
+mod i18n;
 mod icons;
 pub mod keys;
 mod layers;
@@ -159,6 +161,7 @@ pub struct App {
     pub(crate) asset_thumbs: std::collections::HashMap<NodeId, (u64, Option<egui::TextureHandle>)>,
     pub file_actions: Option<FileActions>,
     pub file_name: String,
+    pub language: i18n::Language,
     pub(crate) left_tab: LeftTab,
     pub(crate) right_tab: RightTab,
     pub(crate) group_tool: Vec<ToolKind>,
@@ -233,6 +236,7 @@ impl App {
             asset_thumbs: std::collections::HashMap::new(),
             file_actions: None,
             file_name: "Untitled".to_owned(),
+            language: i18n::Language::default(),
             left_tab: LeftTab::Layers,
             right_tab: RightTab::Design,
             group_tool: vec![
@@ -445,6 +449,10 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    pub fn tr<'a>(&self, english: &'a str) -> &'a str {
+        i18n::tr(self.language, english)
     }
 
     pub(crate) fn font_families(&mut self) -> Vec<String> {

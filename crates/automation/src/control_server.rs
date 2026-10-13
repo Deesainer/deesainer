@@ -244,3 +244,71 @@ impl crate::Backend for ControlClient {
         true
     }
 }
+
+pub fn pointer_path() -> Option<std::path::PathBuf> {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))?;
+    Some(
+        std::path::PathBuf::from(home)
+            .join(".deesainer")
+            .join("control.json"),
+    )
+}
+
+fn write_pointer_at(path: &Path, port: u16, token_file: &Path) -> std::io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let body = serde_json::json!({ "port": port, "tokenFile": token_file }).to_string();
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    let mut f = opts.open(path)?;
+    use std::io::Write as _;
+    f.write_all(body.as_bytes())
+}
+
+fn read_pointer_at(path: &Path) -> Option<(u16, std::path::PathBuf)> {
+    let body = std::fs::read_to_string(path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&body).ok()?;
+    let port = v.get("port")?.as_u64()?;
+    let token = v.get("tokenFile")?.as_str()?;
+    Some((port as u16, std::path::PathBuf::from(token)))
+}
+
+pub fn write_pointer(port: u16, token_file: &Path) {
+    if let Some(path) = pointer_path() {
+        let _ = write_pointer_at(&path, port, token_file);
+    }
+}
+
+pub fn read_pointer() -> Option<(u16, std::path::PathBuf)> {
+    pointer_path().and_then(|p| read_pointer_at(&p))
+}
+
+pub fn clear_pointer() {
+    if let Some(path) = pointer_path() {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+#[cfg(test)]
+mod pointer_tests {
+    use super::*;
+
+    #[test]
+    fn pointer_round_trip() {
+        let dir = std::env::temp_dir().join(format!("deesainer-pointer-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = dir.join("control.json");
+        let token = dir.join("token");
+        write_pointer_at(&path, 47123, &token).expect("write");
+        let got = read_pointer_at(&path);
+        assert_eq!(got.as_ref().map(|(p, _)| *p), Some(47123));
+        assert_eq!(got.as_ref().map(|(_, t)| t.clone()), Some(token));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

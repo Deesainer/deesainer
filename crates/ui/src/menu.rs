@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use crate::canvas;
 use crate::icons::Icon;
 use crate::widgets;
-use crate::{keys, App};
+use crate::{i18n, keys, App};
 
 fn special(app: &mut App, id: &str) -> bool {
     if let Some(tool) = ToolKind::for_command(id) {
@@ -134,6 +134,7 @@ const VIEW: &[Entry] = &[
     Check("Prototype connections", "", "toggle:prototype"),
     Check("Inspect", "⇧D", "toggle:inspect"),
     Sub("Renderer", RENDERER),
+    Sub("Language", LANGUAGES),
     Sep,
     Check("Show/Hide UI", "⌘\\", "toggle:ui"),
     Check("Left sidebar", "", "toggle:left"),
@@ -223,6 +224,16 @@ const ARRANGE: &[Entry] = &[
     Cmd("distribute.vertical", ""),
 ];
 
+const LANGUAGES: &[Entry] = &[
+    Check("English", "", "language:en"),
+    Check("Italiano", "", "language:it"),
+    Check("Español", "", "language:es"),
+    Check("Français", "", "language:fr"),
+    Check("Deutsch", "", "language:de"),
+    Check("中文", "", "language:zh"),
+    Check("日本語", "", "language:ja"),
+];
+
 const HELP: &[Entry] = &[
     Ui("Keyboard shortcuts", "^⇧?", "help:shortcuts"),
     Ui("Extensions…", "", "help:extensions"),
@@ -231,7 +242,8 @@ const HELP: &[Entry] = &[
 ];
 
 pub fn main_menu(app: &mut App, ui: &mut egui::Ui) {
-    if widgets::menu_item(ui, None, Some(Icon::Search), "Actions…", "⌘K", true).clicked() {
+    if widgets::menu_item(ui, None, Some(Icon::Search), app.tr("Actions…"), "⌘K", true).clicked()
+    {
         app.palette = Some(Palette::default());
         ui.close();
     }
@@ -244,10 +256,10 @@ pub fn main_menu(app: &mut App, ui: &mut egui::Ui) {
         ("Text", TEXT),
         ("Arrange", ARRANGE),
     ] {
-        ui.menu_button(top, |ui| entries_ui(app, ui, entries));
+        ui.menu_button(app.tr(top), |ui| entries_ui(app, ui, entries));
     }
     widgets::menu_separator(ui);
-    ui.menu_button("Plugins", |ui| {
+    ui.menu_button(app.tr("Plugins"), |ui| {
         for (label, action) in app.plugins.clone() {
             if widgets::menu_item(ui, None, None, &label, "", true).clicked() {
                 run_file_action(app, &action);
@@ -260,7 +272,7 @@ pub fn main_menu(app: &mut App, ui: &mut egui::Ui) {
         entries_ui(app, ui, &[Cmd("plugin.run", "Run plugin…")]);
     });
     widgets::menu_separator(ui);
-    ui.menu_button("Help and account", |ui| entries_ui(app, ui, HELP));
+    ui.menu_button(app.tr("Help and account"), |ui| entries_ui(app, ui, HELP));
 }
 
 const OBJECT_CONTEXT: &[Entry] = &[
@@ -300,7 +312,7 @@ const CANVAS_CONTEXT: &[Entry] = &[
 ];
 
 pub fn object_context(app: &mut App, ui: &mut egui::Ui, rename: bool) {
-    if rename && widgets::menu_item(ui, None, None, "Rename", "⌘R", true).clicked() {
+    if rename && widgets::menu_item(ui, None, None, app.tr("Rename"), "⌘R", true).clicked() {
         run_command(app, "node.rename");
         ui.close();
     }
@@ -342,6 +354,10 @@ fn command_label(app: &App, id: &str) -> String {
         .unwrap_or_else(|| id.to_owned())
 }
 
+fn label_of<'a>(app: &App, label: &'a str) -> &'a str {
+    app.tr(label)
+}
+
 fn entries_ui(app: &mut App, ui: &mut egui::Ui, entries: &[Entry]) {
     let has_checks = entries.iter().any(|e| matches!(e, Check(..)));
     for e in entries {
@@ -352,6 +368,7 @@ fn entries_ui(app: &mut App, ui: &mut egui::Ui, entries: &[Entry]) {
                 } else {
                     (*label).to_owned()
                 };
+                let label = label_of(app, &label).to_owned();
                 let key = shortcut_label(app, id);
                 let enabled = app.session.is_enabled(id);
                 let check = has_checks.then_some(false);
@@ -363,20 +380,22 @@ fn entries_ui(app: &mut App, ui: &mut egui::Ui, entries: &[Entry]) {
             Ui(label, key, action) => {
                 let enabled = ui_action_enabled(app, action);
                 let check = has_checks.then_some(false);
-                if widgets::menu_item(ui, check, None, label, key, enabled).clicked() {
+                if widgets::menu_item(ui, check, None, label_of(app, label), key, enabled).clicked()
+                {
                     run_ui_action(app, action);
                     ui.close();
                 }
             }
             Check(label, key, action) => {
                 let on = ui_toggle_state(app, action);
-                if widgets::menu_item(ui, Some(on), None, label, key, true).clicked() {
+                if widgets::menu_item(ui, Some(on), None, label_of(app, label), key, true).clicked()
+                {
                     run_ui_action(app, action);
                     ui.close();
                 }
             }
             Sub(label, sub) => {
-                ui.menu_button(*label, |ui| entries_ui(app, ui, sub));
+                ui.menu_button(label_of(app, label), |ui| entries_ui(app, ui, sub));
             }
             Sep => widgets::menu_separator(ui),
         }
@@ -398,6 +417,9 @@ fn ui_toggle_state(app: &App, action: &str) -> bool {
         "toggle:ui" => !app.ui_hidden,
         "toggle:left" => app.show_layers,
         "toggle:right" => app.show_design,
+        _ if action.starts_with("language:") => action
+            .strip_prefix("language:")
+            .is_some_and(|l| app.language.as_str() == l),
         _ => false,
     }
 }
@@ -457,6 +479,12 @@ pub fn run_ui_action(app: &mut App, action: &str) {
             );
         }
         app.session.end_group();
+        return;
+    }
+    if let Some(l) = action.strip_prefix("language:") {
+        if let Some(lang) = i18n::Language::from_code(l) {
+            app.language = lang;
+        }
         return;
     }
     let ids = app.session.selection().to_vec();
@@ -572,10 +600,20 @@ pub fn palette_entries(app: &App) -> Vec<(String, String, bool, String)> {
                     } else {
                         (*label).to_owned()
                     };
-                    out.push((l, shortcut_label(app, id), true, (*id).to_owned()));
+                    out.push((
+                        label_of(app, &l).to_owned(),
+                        shortcut_label(app, id),
+                        true,
+                        (*id).to_owned(),
+                    ));
                 }
                 Ui(l, k, a) | Check(l, k, a) => {
-                    out.push(((*l).to_owned(), (*k).to_owned(), false, (*a).to_owned()));
+                    out.push((
+                        label_of(app, l).to_owned(),
+                        (*k).to_owned(),
+                        false,
+                        (*a).to_owned(),
+                    ));
                 }
                 Sub(_, sub) => walk(app, sub, out),
                 Sep => {}

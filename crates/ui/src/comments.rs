@@ -193,7 +193,7 @@ pub fn comments_panel(app: &mut App, ui: &mut egui::Ui) {
             crate::icons::glyph(ui, crate::icons::Icon::Comment, TOKENS.text);
             ui.add(
                 egui::Label::new(
-                    "Give feedback, ask a question, or just leave a note. Click anywhere on the canvas to leave a comment.",
+                    app.tr("Give feedback, ask a question, or just leave a note. Click anywhere on the canvas to leave a comment."),
                 )
                 .wrap(),
             );
@@ -229,9 +229,18 @@ pub fn comments_panel(app: &mut App, ui: &mut egui::Ui) {
                             ui.label(egui::RichText::new(when).color(TOKENS.text_secondary));
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            let label = if c.resolved { "Reopen" } else { "Resolve" };
-                            if crate::icons::button(ui, crate::icons::Icon::Close, false, "Delete")
-                                .clicked()
+                            let label = if c.resolved {
+                                app.tr("Reopen")
+                            } else {
+                                app.tr("Resolve")
+                            };
+                            if crate::icons::button(
+                                ui,
+                                crate::icons::Icon::Close,
+                                false,
+                                app.tr("Delete"),
+                            )
+                            .clicked()
                             {
                                 app.dispatch("comment.delete", json!({ "id": id.0 }));
                             }

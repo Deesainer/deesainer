@@ -395,11 +395,30 @@ impl<B: Backend> McpServer<B> {
                 } else {
                     SUPPORTED_PROTOCOLS[0]
                 };
+                let mut instructions = "Deesainer is an interface design tool. Every feature is a command: call command_list, then command_run. Use doc_inspect for node ids and render_preview to see the result. Coordinates are logical points; x/y are in the parent's space."
+                    .to_owned();
+                if self.backend.is_bridge() {
+                    let open = self
+                        .backend
+                        .bridge_call("ui_state", &Value::Null)
+                        .and_then(|r| r.ok())
+                        .and_then(|v| v.get("file").cloned())
+                        .and_then(|v| v.as_str().map(str::to_owned))
+                        .filter(|name| !name.is_empty());
+                    match &open {
+                        Some(name) => instructions.push_str(&format!(
+                            " The connected app has the document \"{name}\" open. When asked to create or edit a design, ask the user whether to work on this document or start a new one (file.new)."
+                        )),
+                        None => instructions.push_str(
+                            " The connected app has a document open. When asked to create or edit a design, ask the user whether to work on it or start a new one (file.new).",
+                        ),
+                    }
+                }
                 Ok(json!({
                     "protocolVersion": version,
                     "capabilities": {"tools": {"listChanged": false}, "resources": {"listChanged": false}},
                     "serverInfo": {"name": self.name, "title": "Deesainer", "version": env!("CARGO_PKG_VERSION")},
-                    "instructions": "Deesainer is an interface design tool. Every feature is a command: call command_list, then command_run. Use doc_inspect for node ids and render_preview to see the result. Coordinates are logical points; x/y are in the parent's space.",
+                    "instructions": instructions,
                 }))
             }
             "ping" => Ok(json!({})),

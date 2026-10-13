@@ -324,6 +324,46 @@ struct Collab {
     team_resumed: bool,
 }
 
+fn settings_path() -> Option<PathBuf> {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))?;
+    Some(PathBuf::from(home).join(".deesainer").join("settings.json"))
+}
+
+fn load_language() -> deesainer_ui::Language {
+    let Some(path) = settings_path() else {
+        return deesainer_ui::Language::default();
+    };
+    let Ok(body) = std::fs::read_to_string(&path) else {
+        return deesainer_ui::Language::default();
+    };
+    serde_json::from_str::<serde_json::Value>(&body)
+        .ok()
+        .and_then(|v| v.get("language")?.as_str().map(str::to_owned))
+        .and_then(|s| deesainer_ui::Language::from_code(&s))
+        .unwrap_or_default()
+}
+
+fn save_language(language: deesainer_ui::Language) {
+    let Some(path) = settings_path() else {
+        return;
+    };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let body = serde_json::json!({ "language": language.as_str() }).to_string();
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    if let Ok(mut f) = opts.open(&path) {
+        use std::io::Write as _;
+        let _ = f.write_all(body.as_bytes());
+    }
+}
+
 fn team_session_path() -> Option<PathBuf> {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"))?;
     Some(PathBuf::from(home).join(".deesainer").join("team.json"))
@@ -366,11 +406,14 @@ struct Shell {
     recovery: Option<recovery::Recovery>,
     pending_recovery: Option<recovery::Pending>,
     snapshot_written: bool,
+    last_language: deesainer_ui::Language,
+    cjk_fonts: bool,
     collab: Collab,
 }
 
 impl Drop for Shell {
     fn drop(&mut self) {
+        deesainer_automation::control_server::clear_pointer();
         if let Some(mut relay) = self.collab.relay.take() {
             let _ = relay.kill();
         }
@@ -918,6 +961,27 @@ impl eframe::App for Shell {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
+        if self.app.language != self.last_language {
+            self.last_language = self.app.language;
+            save_language(self.app.language);
+        }
+        if self.app.language.is_cjk() && !self.cjk_fonts {
+            self.cjk_fonts = true;
+            if let Some(data) = deesainer_text::cjk_font_data() {
+                let mut fonts = egui::FontDefinitions::default();
+                fonts
+                    .font_data
+                    .insert("cjk".to_owned(), egui::FontData::from_owned(data).into());
+                for family in [egui::FontFamily::Proportional, egui::FontFamily::Monospace] {
+                    fonts
+                        .families
+                        .entry(family)
+                        .or_default()
+                        .push("cjk".to_owned());
+                }
+                ui.ctx().set_fonts(fonts);
+            }
+        }
         self.app.gpu = if let Some(state) = frame.wgpu_render_state() {
             if !self.app.has_gpu_compositor() {
                 deesainer_ui::attach_wgpu(&mut self.app, state, MULTISAMPLING.into());
@@ -1454,6 +1518,7 @@ fn main() -> eframe::Result {
         match deesainer_automation::control_server::ControlServer::start(port, token) {
             Ok(server) => {
                 eprintln!("deesainer: control server on {}", server.addr);
+                deesainer_automation::control_server::write_pointer(port, &token_file);
                 control_ext = Some(control::ControlExtension {
                     server,
                     read_root: flag("--automation-read-root").map(PathBuf::from),
@@ -1502,6 +1567,7 @@ fn main() -> eframe::Result {
                 return Err("the app was already created".into());
             };
             let mut app = App::new(session);
+            app.language = load_language();
             app.render_mode = render_mode;
             app.plugins = installed_plugins();
             app.extensions.push(Box::new(assistant::Assistant::new()));
@@ -1526,6 +1592,7 @@ fn main() -> eframe::Result {
             app.file_actions = Some(Box::new(move |action, session| {
                 file_action(&actions_state, action, session)
             }));
+            let last_language = app.language;
             Ok(Box::new(Shell {
                 app,
                 file: state,
@@ -1534,6 +1601,8 @@ fn main() -> eframe::Result {
                 recovery_revision: 0,
                 recovery: recovery::Recovery::in_home(),
                 pending_recovery,
+                last_language,
+                cjk_fonts: false,
                 snapshot_written: false,
                 figma: FigmaImport {
                     link: String::new(),

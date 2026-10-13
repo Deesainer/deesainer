@@ -716,6 +716,43 @@ fn fit_to_range(
     paint
 }
 
+pub fn cjk_font_data() -> Option<Vec<u8>> {
+    const CJK_FAMILIES: &[&str] = &[
+        "Noto Sans CJK",
+        "Noto Sans SC",
+        "Noto Sans TC",
+        "Noto Sans JP",
+        "Source Han Sans",
+        "PingFang SC",
+        "PingFang TC",
+        "Hiragino Sans",
+        "Hiragino Kaku Gothic",
+        "Microsoft YaHei",
+        "SimHei",
+        "Yu Gothic",
+        "Meiryo",
+        "Malgun Gothic",
+        "Apple SD Gothic Neo",
+    ];
+    let Ok(guard) = fonts().lock() else {
+        return None;
+    };
+    let db = guard.system.db();
+    let id = db
+        .faces()
+        .find(|f| {
+            f.families
+                .iter()
+                .any(|(n, _)| CJK_FAMILIES.iter().any(|c| n.starts_with(c)))
+        })
+        .map(|f| f.id)?;
+    let mut out = None;
+    db.with_face_data(id, |data, _| {
+        out = Some(data.to_vec());
+    });
+    out
+}
+
 pub fn families() -> Vec<String> {
     let Ok(guard) = fonts().lock() else {
         return Vec::new();
