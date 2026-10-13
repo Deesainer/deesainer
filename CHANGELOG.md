@@ -3,6 +3,13 @@
 Every published release, newest first. Each entry is also the release notes
 of the matching tag (`docs/releases/<version>.md`).
 
+## 1.1.0-beta.3 — 2026-10-13
+
+More of the interface translated: the design panel rows (appearance, opacity,
+corner radius, layout modes, auto width/height, fixed size, size limits and
+the paint kind names). The translation tables hold 231 strings per language,
+guarded by a regression test.
+
 ## 1.1.0-beta.2 — 2026-10-13
 
 - **Interface languages**: the whole chrome — menus, palette, sidebars, the

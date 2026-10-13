@@ -173,7 +173,7 @@ fn multi_typography(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], nodes: &[N
             let resp = widgets::select(ui, full, family.as_deref().unwrap_or("Mixed"));
             widgets::popover(&resp, "Fonts").show(|ui| {
                 ui.set_width(240.0);
-                if widgets::popover_title(ui, "Fonts") {
+                if widgets::popover_title(ui, app.tr("Fonts")) {
                     ui.close();
                 }
                 if let Some(f) = font_list(app, ui, &families, family.as_deref()) {
@@ -604,10 +604,10 @@ fn layout_body(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
             _ => 0,
         };
         let items = [
-            (Icon::LayoutFree, "Freeform"),
-            (Icon::LayoutVertical, "Vertical layout"),
-            (Icon::LayoutHorizontal, "Horizontal layout (⇧A)"),
-            (Icon::LayoutGrid, "Grid layout"),
+            (Icon::LayoutFree, app.tr("Freeform")),
+            (Icon::LayoutVertical, app.tr("Vertical layout")),
+            (Icon::LayoutHorizontal, app.tr("Horizontal layout (⇧A)")),
+            (Icon::LayoutGrid, app.tr("Grid layout")),
         ];
         if let Some(i) = widgets::segmented(ui, &items, Some(sel), 32.0) {
             if i != sel {
@@ -627,9 +627,9 @@ fn layout_body(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
         let keys = ["widthAndHeight", "height", "none"];
         let sel = keys.iter().position(|k| *k == current);
         let items = [
-            (Icon::AutoWidth, "Auto width"),
-            (Icon::AutoHeight, "Auto height"),
-            (Icon::FixedSize, "Fixed size"),
+            (Icon::AutoWidth, app.tr("Auto width")),
+            (Icon::AutoHeight, app.tr("Auto height")),
+            (Icon::FixedSize, app.tr("Fixed size")),
         ];
         if let Some(i) = widgets::segmented(ui, &items, sel, 32.0) {
             set_layer_text_style(app, id, json!({ "ids": [id], "autoResize": keys[i] }));
@@ -693,7 +693,7 @@ fn size_limits(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
                 let resp = widgets::number(ui, Lead::Text(label), &mut v, 1.0, "", w);
                 let mut params = json!({ "ids": [id] });
                 params[key] = json!(v.max(0.0));
-                edit(app, &resp, "Size limit", "node.setProps", params);
+                edit(app, &resp, app.tr("Size limit"), "node.setProps", params);
                 if icons::button(ui, Icon::Minus, false, &format!("Remove {label}")).clicked() {
                     let mut params = json!({ "ids": [id] });
                     params[key] = Value::Null;
@@ -761,7 +761,7 @@ fn layer_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) 
     let mut toggle = false;
     widgets::section(
         ui,
-        "Appearance",
+        app.tr("Appearance"),
         |ui| {
             let blend = icons::button(ui, Icon::Opacity, false, &format!("Blend mode: {current}"));
             crate::widgets::menu(&blend).show(|ui| {
@@ -788,7 +788,7 @@ fn layer_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) 
                     edit(
                         app,
                         &resp,
-                        "Opacity",
+                        app.tr("Opacity"),
                         "node.setProps",
                         json!({ "ids": ids, "opacity": (pct / 100.0).clamp(0.0, 1.0) }),
                     );
@@ -799,7 +799,7 @@ fn layer_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) 
                     edit(
                         app,
                         &resp,
-                        "Opacity",
+                        app.tr("Opacity"),
                         "node.setProps",
                         json!({ "ids": ids, "opacity": (pct / 100.0).clamp(0.0, 1.0) }),
                     );
@@ -821,7 +821,7 @@ fn layer_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) 
                         edit(
                             app,
                             &resp,
-                            "Corner radius",
+                            app.tr("Corner radius"),
                             "node.setProps",
                             json!({ "ids": ids, "cornerRadius": v.unwrap_or(0.0).max(0.0) }),
                         );
@@ -834,7 +834,7 @@ fn layer_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) 
                         edit(
                             app,
                             &resp,
-                            "Corner radius",
+                            app.tr("Corner radius"),
                             "node.setProps",
                             json!({ "ids": ids, "cornerRadius": radius.max(0.0) }),
                         );
@@ -861,7 +861,7 @@ fn layer_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) 
                         edit(
                             app,
                             &resp,
-                            "Corner radius",
+                            app.tr("Corner radius"),
                             "node.setProps",
                             json!({ "ids": ids, "cornerRadii": next }),
                         );
@@ -889,14 +889,14 @@ fn paint_label(p: &Paint) -> String {
     }
 }
 
-fn paint_editor(ui: &mut egui::Ui, p: &mut Paint) -> bool {
+fn paint_editor(app: &App, ui: &mut egui::Ui, p: &mut Paint) -> bool {
     let mut changed = false;
     let current = match p.kind {
-        PaintKind::Solid { .. } => "Solid",
-        PaintKind::LinearGradient { .. } => "Linear",
-        PaintKind::RadialGradient { .. } => "Radial",
-        PaintKind::AngularGradient { .. } => "Angular",
-        PaintKind::DiamondGradient { .. } => "Diamond",
+        PaintKind::Solid { .. } => app.tr("Solid"),
+        PaintKind::LinearGradient { .. } => app.tr("Linear"),
+        PaintKind::RadialGradient { .. } => app.tr("Radial"),
+        PaintKind::AngularGradient { .. } => app.tr("Angular"),
+        PaintKind::DiamondGradient { .. } => app.tr("Diamond"),
         PaintKind::Image { .. } => "Image",
     };
     ui.horizontal(|ui| {
@@ -1031,11 +1031,12 @@ fn paint_editor(ui: &mut egui::Ui, p: &mut Paint) -> bool {
     changed
 }
 
-fn paints_ui(ui: &mut egui::Ui, salt: &str, paints: &mut Vec<Paint>) -> bool {
-    paints_ui_with(ui, salt, paints, &mut None)
+fn paints_ui(app: &App, ui: &mut egui::Ui, salt: &str, paints: &mut Vec<Paint>) -> bool {
+    paints_ui_with(app, ui, salt, paints, &mut None)
 }
 
 fn paints_ui_with(
+    app: &App,
     ui: &mut egui::Ui,
     salt: &str,
     paints: &mut Vec<Paint>,
@@ -1056,7 +1057,7 @@ fn paints_ui_with(
                     widgets::paint_value(ui, shown, &label, &mut pct, main_w + 57.0);
                 if let Some(r) = widgets::popover(&resp, "").show(|ui| {
                     ui.set_width(300.0);
-                    paint_editor(ui, p)
+                    paint_editor(app, ui, p)
                 }) {
                     changed |= r.inner;
                     if p.stops().is_some() {
@@ -1138,7 +1139,7 @@ fn fill_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node) {
         });
     }
     let mut open_gradient = None;
-    let changed = paints_ui_with(ui, "fill", &mut fills, &mut open_gradient);
+    let changed = paints_ui_with(app, ui, "fill", &mut fills, &mut open_gradient);
     if let ([id], Some(i)) = (ids, open_gradient) {
         app.gradient_edit = Some((*id, i));
         app.gradient_sticky = Some((*id, i));
@@ -1183,7 +1184,7 @@ fn stroke_section(app: &mut App, ui: &mut egui::Ui, ids: &[NodeId], node: &Node)
     }
     let mixed_align = differ(&nodes, |n| n.stroke.align);
     let mixed_weight = differ(&nodes, |n| n.stroke.weight);
-    if paints_ui(ui, "stroke", &mut strokes) {
+    if paints_ui(app, ui, "stroke", &mut strokes) {
         app.dispatch("node.setStrokes", json!({ "ids": ids, "strokes": strokes }));
     }
     ui.horizontal(|ui| {
@@ -1989,7 +1990,7 @@ fn text_section(app: &mut App, ui: &mut egui::Ui, id: NodeId, node: &Node) {
             let fam = widgets::select(ui, full, &style.font_family);
             widgets::popover(&fam, "Fonts").show(|ui| {
                 ui.set_width(240.0);
-                if widgets::popover_title(ui, "Fonts") {
+                if widgets::popover_title(ui, app.tr("Fonts")) {
                     ui.close();
                 }
                 if let Some(f) = font_list(app, ui, &families, Some(&style.font_family)) {
