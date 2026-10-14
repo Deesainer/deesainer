@@ -63,12 +63,14 @@ pub fn file_header(app: &mut App, ui: &mut Ui) {
         crate::widgets::menu(&resp).show(|ui| {
             for (label, action) in [
                 ("Open…", "open"),
+                ("Import SVG…", "importSvg"),
+                ("Import from Figma…", "importFigma"),
                 ("Save", "save"),
                 ("Save as…", "saveAs"),
                 ("Export…", "export"),
             ] {
                 if ui
-                    .add_enabled(app.file_actions.is_some(), egui::Button::new(label))
+                    .add_enabled(app.file_actions.is_some(), egui::Button::new(app.tr(label)))
                     .clicked()
                 {
                     menu::run_file_action(app, action);

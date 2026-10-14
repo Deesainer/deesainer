@@ -3,6 +3,18 @@
 Every published release, newest first. Each entry is also the release notes
 of the matching tag (`docs/releases/<version>.md`).
 
+## 1.1.0-beta.4 — 2026-10-14
+
+- **Colour management on the Mac**: on wide-gamut displays the canvas is
+  presented in Display P3 — the GPU blit and the CPU and mesh paths convert
+  from sRGB at presentation time, detected from the display profile's
+  primaries. Exports stay sRGB; Windows and Linux are unchanged.
+- **Windows**: the app no longer opens a console window next to its own
+  (GUI subsystem in release builds), and the relay it hosts stays windowless.
+- **Figma import**: the GLASS effect maps to a background blur, and SVG and
+  Figma import are offered from the file name menu.
+- **Tools**: the parity check tolerates CRLF checkouts.
+
 ## 1.1.0-beta.3 — 2026-10-13
 
 More of the interface translated: the design panel rows (appearance, opacity,

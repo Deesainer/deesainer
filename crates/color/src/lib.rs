@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub mod display_p3;
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ColorError {
     #[error("invalid hex color {0:?}: expected #RRGGBB or #RRGGBBAA")]

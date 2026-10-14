@@ -6,6 +6,7 @@ use serde_json::Value;
 const LAYERS: &[(&str, u8)] = &[
     ("deesainer-geom", 0),
     ("deesainer-color", 0),
+    ("deesainer-gamut", 0),
     ("deesainer-figfile", 0),
     ("deesainer-doc", 1),
     ("deesainer-ops", 2),
@@ -314,7 +315,7 @@ fn parity(root: &Path, check: bool) -> TaskResult {
         return Err("docs/parity.md is missing the summary markers".into());
     };
     let updated = format!("{}{START}\n{summary}{}", &text[..a], &text[b..]);
-    if updated != text {
+    if updated.replace("\r\n", "\n") != text.replace("\r\n", "\n") {
         if check {
             return Err("the parity summary is out of date; run `cargo xtask parity`".into());
         }

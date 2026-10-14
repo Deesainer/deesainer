@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod assistant;
 mod control;
 mod recovery;
@@ -9,6 +11,8 @@ use std::time::{Duration, Instant};
 
 use base64::Engine as _;
 use eframe::egui;
+#[cfg(windows)]
+use std::process::Stdio;
 use std::process::{Child, Command};
 
 use deesainer_automation::files;
@@ -17,6 +21,13 @@ use deesainer_automation::team_client::{TeamClient, TeamFile};
 use deesainer_engine::Session;
 use deesainer_ui::{App, Extension, ExtensionView, RemotePeer};
 use serde_json::{json, Value};
+
+macro_rules! note {
+    ($($arg:tt)*) => {{
+        use std::io::Write as _;
+        let _ = writeln!(std::io::stderr(), $($arg)*);
+    }};
+}
 
 #[derive(Default)]
 struct FileState {
@@ -648,15 +659,21 @@ impl Shell {
             self.collab.error = "deesainer-relay was not found next to the app.".into();
             return;
         };
-        match Command::new(bin)
-            .args([
-                "--file",
-                &path.to_string_lossy(),
-                "--bind",
-                &self.collab.addr,
-            ])
-            .spawn()
-        {
+        let mut cmd = Command::new(bin);
+        cmd.args([
+            "--file",
+            &path.to_string_lossy(),
+            "--bind",
+            &self.collab.addr,
+        ]);
+        #[cfg(windows)]
+        if !cfg!(debug_assertions) {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.stdout(Stdio::null()).stderr(Stdio::null());
+        }
+        match cmd.spawn() {
             Ok(child) => {
                 self.collab.relay = Some(child);
                 std::thread::sleep(Duration::from_millis(300));
@@ -1411,7 +1428,7 @@ fn demo(session: &mut Session) {
     ];
     for (cmd, params) in steps {
         if let Err(e) = session.dispatch(cmd, &params) {
-            eprintln!("demo: {cmd} failed: {e}");
+            note!("demo: {cmd} failed: {e}");
         }
     }
     let _ = session.dispatch("selection.clear", &Value::Null);
@@ -1461,13 +1478,13 @@ fn main() -> eframe::Result {
             s
         }
         Some(Err(e)) => {
-            eprintln!("deesainer: {e}");
+            note!("deesainer: {e}");
             std::process::exit(1);
         }
         None => match Session::new() {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("deesainer: cannot start the engine: {e}");
+                note!("deesainer: cannot start the engine: {e}");
                 std::process::exit(1);
             }
         },
@@ -1478,6 +1495,7 @@ fn main() -> eframe::Result {
         demo(&mut session);
     }
     file.borrow_mut().saved_revision = session.revision();
+    let display_p3 = deesainer_gamut::display_p3();
     let options = eframe::NativeOptions {
         viewport: {
             let vp = egui::ViewportBuilder::default()
@@ -1503,21 +1521,21 @@ fn main() -> eframe::Result {
     let mut control_ext = None;
     if let Some(port) = flag("--control") {
         let port: u16 = port.parse().unwrap_or_else(|_| {
-            eprintln!("deesainer: --control needs a port number");
+            note!("deesainer: --control needs a port number");
             std::process::exit(2);
         });
         let token_file = flag("--control-token-file").map(PathBuf::from).unwrap_or_else(|| {
-            eprintln!("deesainer: --control needs --control-token-file FILE (created with a fresh token if missing)");
+            note!("deesainer: --control needs --control-token-file FILE (created with a fresh token if missing)");
             std::process::exit(2);
         });
         let token = deesainer_automation::control_server::load_or_create_token(&token_file)
             .unwrap_or_else(|e| {
-                eprintln!("deesainer: {e}");
+                note!("deesainer: {e}");
                 std::process::exit(2);
             });
         match deesainer_automation::control_server::ControlServer::start(port, token) {
             Ok(server) => {
-                eprintln!("deesainer: control server on {}", server.addr);
+                note!("deesainer: control server on {}", server.addr);
                 deesainer_automation::control_server::write_pointer(port, &token_file);
                 control_ext = Some(control::ControlExtension {
                     server,
@@ -1528,7 +1546,7 @@ fn main() -> eframe::Result {
                 });
             }
             Err(e) => {
-                eprintln!("deesainer: {e}");
+                note!("deesainer: {e}");
                 std::process::exit(2);
             }
         }
@@ -1568,6 +1586,7 @@ fn main() -> eframe::Result {
             };
             let mut app = App::new(session);
             app.language = load_language();
+            app.display_p3 = display_p3;
             app.render_mode = render_mode;
             app.plugins = installed_plugins();
             app.extensions.push(Box::new(assistant::Assistant::new()));
@@ -1649,7 +1668,7 @@ fn main() -> eframe::Result {
     }
     match run(eframe::Renderer::Wgpu, options.clone()) {
         Err(e) if launch.borrow().is_some() => {
-            eprintln!("deesainer: wgpu is unavailable ({e}); using OpenGL");
+            note!("deesainer: wgpu is unavailable ({e}); using OpenGL");
             run(eframe::Renderer::Glow, options)
         }
         other => other,

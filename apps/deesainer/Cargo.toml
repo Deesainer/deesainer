@@ -12,6 +12,7 @@ deesainer-ui.workspace = true
 deesainer-engine.workspace = true
 serde_json.workspace = true
 deesainer-format.workspace = true
+deesainer-gamut.workspace = true
 deesainer-automation.workspace = true
 base64.workspace = true
 rfd = "0.17"

@@ -1,0 +1,23 @@
+[package]
+name = "deesainer-gamut"
+description = "Deesainer L0: whether the main display uses the Display P3 primaries."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+
+# The macOS side calls CoreGraphics/CoreFoundation through a small FFI
+# shim, so this crate relaxes the workspace's unsafe ban and repeats the
+# other lints instead.
+[lints.rust]
+unsafe_code = "allow"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"

@@ -122,7 +122,7 @@ fn gpu_t(
             size: [W, H],
         },
     };
-    let mut c = Compositor::new(device, queue, wgpu::TextureFormat::Rgba8Unorm, 1);
+    let mut c = Compositor::new(device, queue, wgpu::TextureFormat::Rgba8Unorm, 1, false);
     c.render_to_pixels(device, queue, &frame).unwrap()
 }
 
@@ -527,7 +527,8 @@ fn filters_work_with_pooled_targets_of_other_sizes() {
         eprintln!("pooled targets: no GPU adapter on this machine; the test cannot run");
         return;
     };
-    let mut compositor = Compositor::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1);
+    let mut compositor =
+        Compositor::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1, false);
     let frame = |doc: &Document, page: NodeId, w: u32, h: u32| {
         let mesh = deesainer_mesh::build(
             doc,
@@ -812,7 +813,7 @@ fn layers_past_the_memory_budget_are_flattened_not_lost() {
             size: [W, H],
         },
     };
-    let mut c = Compositor::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1);
+    let mut c = Compositor::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1, false);
     c.set_memory_budget(4 * 1024 * 1024);
     let out = c.render_to_pixels(&device, &queue, &frame).unwrap();
     let flattened = c.health().flattened_layers();

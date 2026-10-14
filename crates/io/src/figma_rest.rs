@@ -261,6 +261,10 @@ fn effects(v: &Value) -> Vec<Effect> {
                     radius: blur,
                     visible,
                 },
+                "GLASS" => Effect::BackgroundBlur {
+                    radius: 20.0,
+                    visible,
+                },
                 _ => return None,
             })
         })

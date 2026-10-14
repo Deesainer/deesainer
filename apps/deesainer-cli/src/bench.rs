@@ -69,7 +69,7 @@ fn gpu_scenarios(
         return;
     };
     let mut compositor =
-        deesainer_gpu::Compositor::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1);
+        deesainer_gpu::Compositor::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, 1, false);
     let frame = |mesh: Arc<deesainer_mesh::SceneMesh>, id: u64, dx: f32| deesainer_gpu::Frame {
         background: mesh.background.unwrap_or([0; 4]),
         mesh,

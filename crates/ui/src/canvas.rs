@@ -118,8 +118,13 @@ pub fn attach_wgpu(app: &mut App, state: &egui_wgpu::RenderState, samples: u32) 
     if state.adapter.get_info().device_type == egui_wgpu::wgpu::DeviceType::Cpu {
         return;
     }
-    let compositor =
-        deesainer_gpu::Compositor::new(&state.device, &state.queue, state.target_format, samples);
+    let compositor = deesainer_gpu::Compositor::new(
+        &state.device,
+        &state.queue,
+        state.target_format,
+        samples,
+        app.display_p3,
+    );
     app.gpu_health = Some(compositor.health());
     state.renderer.write().callback_resources.insert(compositor);
     app.gpu_compositor = true;
@@ -512,9 +517,12 @@ fn draw_mesh(app: &mut App, ui: &mut egui::Ui, rect: ERect) -> bool {
                 egui::TextureOptions::LINEAR,
             ),
         };
-        let Some((size, px)) = pixels else {
+        let Some((size, mut px)) = pixels else {
             continue;
         };
+        if app.display_p3 {
+            deesainer_color::display_p3::to_p3_premultiplied(&mut px);
+        }
         let image = egui::ColorImage::from_rgba_premultiplied(size, &px);
         let handle = ui.ctx().load_texture(name, image, options);
         textures.insert(t.clone(), handle);
@@ -522,7 +530,10 @@ fn draw_mesh(app: &mut App, ui: &mut egui::Ui, rect: ERect) -> bool {
     let cam = app.camera;
     let screen = |x: f32, y: f32| cam.to_screen(origin, Point::new(f64::from(x), f64::from(y)));
     let painter = ui.painter_at(rect);
-    if let Some(bg) = cache.mesh.background {
+    if let Some(mut bg) = cache.mesh.background {
+        if app.display_p3 {
+            deesainer_color::display_p3::to_p3_premultiplied(&mut bg);
+        }
         painter.rect_filled(
             rect,
             0.0,
@@ -562,9 +573,13 @@ fn draw_mesh(app: &mut App, ui: &mut egui::Ui, rect: ERect) -> bool {
                 } else {
                     egui::epaint::WHITE_UV
                 },
-                color: Color32::from_rgba_premultiplied(
-                    v.color[0], v.color[1], v.color[2], v.color[3],
-                ),
+                color: {
+                    let mut c = v.color;
+                    if app.display_p3 {
+                        deesainer_color::display_p3::to_p3_premultiplied(&mut c);
+                    }
+                    Color32::from_rgba_premultiplied(c[0], c[1], c[2], c[3])
+                },
             })
             .collect();
         let mesh = egui::Mesh {
@@ -702,7 +717,10 @@ fn draw_render(app: &mut App, ui: &mut egui::Ui, rect: ERect) {
             &vp,
             opts,
         ) {
-            Ok((pix, _)) => {
+            Ok((mut pix, _)) => {
+                if app.display_p3 {
+                    deesainer_color::display_p3::to_p3_premultiplied(pix.data_mut());
+                }
                 let image =
                     egui::ColorImage::from_rgba_premultiplied([w as usize, h as usize], pix.data());
                 match &mut app.canvas.texture {

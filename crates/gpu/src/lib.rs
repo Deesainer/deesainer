@@ -125,6 +125,7 @@ pub struct Compositor {
     blit_bind: Option<wgpu::BindGroup>,
     blit_uniform: wgpu::Buffer,
     srgb_target: bool,
+    display_p3: bool,
     target_samples: u32,
     flattened: usize,
     budget: u64,
@@ -291,6 +292,7 @@ impl Compositor {
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
         target_samples: u32,
+        display_p3: bool,
     ) -> Self {
         let health = Health::default();
         let sink = health.clone();
@@ -546,6 +548,7 @@ impl Compositor {
             blit_bind: None,
             blit_uniform,
             srgb_target,
+            display_p3,
             target_samples: target_samples.max(1),
             flattened: 0,
             budget: POOL_BYTES,
@@ -790,7 +793,7 @@ impl Compositor {
         };
         let mut blit = Vec::with_capacity(16);
         blit.extend_from_slice(&u32::from(self.srgb_target).to_le_bytes());
-        blit.extend_from_slice(&0u32.to_le_bytes());
+        blit.extend_from_slice(&u32::from(self.display_p3).to_le_bytes());
         blit.extend_from_slice(&(w as f32 / root_target.size[0] as f32).to_le_bytes());
         blit.extend_from_slice(&(h as f32 / root_target.size[1] as f32).to_le_bytes());
         queue.write_buffer(&self.blit_uniform, 0, &blit);
