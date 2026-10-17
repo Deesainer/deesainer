@@ -2,7 +2,7 @@
 
 An open-source interface design tool in Rust, for macOS, Windows, Linux and the browser: canvas, vector editing, text, styles and variables, auto layout, components, prototyping, live collaboration and export to PNG, JPEG, WebP, SVG and PDF. Every feature is also a command, available from the CLI, an MCP server and plugins.
 
-**Status: public beta (1.1.0-beta.1).** Please [report problems](https://github.com/Deesainer/deesainer/issues).
+**Status: public beta (1.1.0-beta.4).** Please [report problems](https://github.com/Deesainer/deesainer/issues).
 
 ## Download
 

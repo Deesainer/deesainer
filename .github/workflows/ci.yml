@@ -22,3 +22,10 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
       - run: cargo xtask ci
+        env:
+          # Debuginfo fills the runner's disk during the debug build,
+          # clippy, tests and wasm check; the public export already builds
+          # without it.
+          CARGO_PROFILE_DEV_DEBUG: "0"
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          CARGO_INCREMENTAL: "0"
