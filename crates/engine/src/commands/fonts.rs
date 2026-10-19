@@ -15,15 +15,39 @@ pub fn specs() -> Vec<CommandSpec> {
             .read_only()
             .doc("Font families the document's text uses (layers and styled ranges) that are not installed, with how many text layers use each. Their text draws in a fallback font until replaced. Returns [{family, layers}].")
             .params(const { &[] }),
+        CommandSpec::new("text.fonts", "Installed fonts", fonts)
+            .read_only()
+            .doc("Font families installed on this machine, sorted, optionally filtered. Text in a family that is not installed draws in a fallback font. Returns {families, total}.")
+            .params(const {
+                &[param("filter", ParamType::String, false, "Substring of the family name (case does not matter), e.g. \"sans\" or \"grotesk\".")]
+            }),
         CommandSpec::new("text.replaceFont", "Replace font", replace)
-            .doc("Replaces a font family everywhere in the document's text (layers, styled ranges and text styles) with another. Returns {layers}.")
+            .doc("Replaces a font family with another in the document's text (layers, styled ranges and text styles), or only in the text under ids (shared text styles are then left alone). Returns {layers}.")
             .params(const {
                 &[
                     param("from", ParamType::String, true, "Family to replace (case does not matter)."),
                     param("to", ParamType::String, true, "Family to use instead."),
+                    param("ids", ParamType::NodeIds, false, "Pages or layers whose subtrees to change; default the whole document."),
                 ]
             }),
     ]
+}
+
+const MAX_FAMILIES: usize = 300;
+
+fn fonts(_: &Context<'_>, p: &Params<'_>) -> Result<Outcome, EngineError> {
+    let filter = p.str("filter")?.unwrap_or("").trim().to_lowercase();
+    let mut families: Vec<String> = deesainer_text::families()
+        .into_iter()
+        .filter(|f| filter.is_empty() || f.to_lowercase().contains(&filter))
+        .collect();
+    families.sort_by_key(|f| f.to_lowercase());
+    families.dedup();
+    let total = families.len();
+    families.truncate(MAX_FAMILIES);
+    Ok(Outcome::read(
+        json!({ "families": families, "total": total }),
+    ))
 }
 
 const GENERIC: &[&str] = &["sans-serif", "serif", "monospace", "cursive", "fantasy"];
@@ -64,9 +88,23 @@ fn replace(ctx: &Context<'_>, p: &Params<'_>) -> Result<Outcome, EngineError> {
         return Err(p.invalid("from and to need a family name (to: at most 256 bytes)"));
     }
     let same = |f: &str| f.eq_ignore_ascii_case(from);
+    let scope: Option<std::collections::BTreeSet<deesainer_doc::NodeId>> =
+        match p.node_ids("ids")? {
+            Some(roots) => {
+                let mut all = std::collections::BTreeSet::new();
+                for root in roots {
+                    all.extend(ctx.doc.subtree_pre_order(root)?);
+                }
+                Some(all)
+            }
+            None => None,
+        };
     let mut ops = Vec::new();
     let mut layers = 0usize;
     for node in ctx.doc.nodes() {
+        if scope.as_ref().is_some_and(|s| !s.contains(&node.id)) {
+            continue;
+        }
         let NodeKind::Text(data) = &node.kind else {
             continue;
         };
@@ -84,7 +122,7 @@ fn replace(ctx: &Context<'_>, p: &Params<'_>) -> Result<Outcome, EngineError> {
             ops.push(Op::set(node.id, PropValue::Kind(NodeKind::Text(d))));
         }
     }
-    for (id, style) in ctx.doc.styles() {
+    for (id, style) in ctx.doc.styles().filter(|_| scope.is_none()) {
         if let deesainer_doc::StyleKind::Text(t) = &style.kind {
             if same(&t.font_family) {
                 let mut s = style.clone();

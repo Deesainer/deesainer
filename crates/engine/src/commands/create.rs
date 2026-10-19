@@ -1,5 +1,7 @@
 use deesainer_color::Rgba;
-use deesainer_doc::{Node, NodeId, NodeKind, Paint, TextAutoResize, TextData, TextStyle};
+use deesainer_doc::{
+    CornerRadius, Node, NodeId, NodeKind, Paint, TextAutoResize, TextData, TextStyle,
+};
 use deesainer_geom::{Point, Rect};
 use deesainer_ops::{Op, Transaction};
 use serde_json::json;
@@ -36,13 +38,29 @@ const BOX: [ParamSpec; 7] = [
         "fill",
         ParamType::Color,
         false,
-        "Solid fill, #RRGGBB or #RRGGBBAA.",
+        "Solid fill, #RRGGBB, #RRGGBBAA or {r, g, b, a?} in 0..=1.",
     ),
     param(
         "name",
         ParamType::String,
         false,
         "Layer name; defaults to the shape type.",
+    ),
+];
+
+const ROUNDED_BOX: [ParamSpec; 8] = [
+    BOX[0],
+    BOX[1],
+    BOX[2],
+    BOX[3],
+    BOX[4],
+    BOX[5],
+    BOX[6],
+    param(
+        "cornerRadius",
+        ParamType::Number,
+        false,
+        "Uniform corner radius >= 0 (node.setProps sets per-corner radii).",
     ),
 ];
 
@@ -77,8 +95,8 @@ pub fn specs() -> Vec<CommandSpec> {
             .kind(CommandKind::Interactive)
     };
     vec![
-        shape("node.create.frame", "Frame", "Tools/Frame", "F", "Creates a frame (white fill, clips content). Returns {id} and selects it.", create_frame),
-        shape("node.create.rectangle", "Rectangle", "Tools/Rectangle", "R", "Creates a rectangle. Returns {id} and selects it.", create_rectangle),
+        shape("node.create.frame", "Frame", "Tools/Frame", "F", "Creates a frame (white fill, clips content). Returns {id} and selects it.", create_frame).params(&ROUNDED_BOX),
+        shape("node.create.rectangle", "Rectangle", "Tools/Rectangle", "R", "Creates a rectangle. Returns {id} and selects it.", create_rectangle).params(&ROUNDED_BOX),
         shape("node.create.ellipse", "Ellipse", "Tools/Ellipse", "O", "Creates an ellipse inscribed in the box. Returns {id}.", create_ellipse),
         CommandSpec::new("node.create.polygon", "Polygon", create_polygon)
             .menu("Tools/Polygon")
@@ -173,6 +191,9 @@ fn simple_shape(
     let mut node = Node::new(ctx.doc.next_free_id(), name, kind, rect);
     node.fills
         .push(Paint::solid(p.color("fill")?.unwrap_or(default_fill)));
+    if let Some(r) = p.non_negative("cornerRadius")? {
+        node.corner_radius = CornerRadius::uniform(r);
+    }
     insert_top(
         ctx,
         parent,

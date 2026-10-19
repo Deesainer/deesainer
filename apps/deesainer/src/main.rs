@@ -2,6 +2,7 @@
 
 mod assistant;
 mod control;
+mod markdown;
 mod recovery;
 
 use std::cell::RefCell;

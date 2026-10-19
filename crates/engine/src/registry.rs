@@ -48,9 +48,15 @@ impl ParamType {
             ParamType::Integer | ParamType::NodeId => json!({"type": "integer", "minimum": 0}),
             ParamType::Bool => json!({"type": "boolean"}),
             ParamType::String => json!({"type": "string"}),
-            ParamType::Color => {
-                json!({"type": "string", "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"})
-            }
+            ParamType::Color => json!({"oneOf": [
+                {"type": "string", "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"},
+                {"type": "object", "properties": {
+                    "r": {"type": "number", "minimum": 0, "maximum": 1},
+                    "g": {"type": "number", "minimum": 0, "maximum": 1},
+                    "b": {"type": "number", "minimum": 0, "maximum": 1},
+                    "a": {"type": "number", "minimum": 0, "maximum": 1}
+                }, "required": ["r", "g", "b"], "additionalProperties": false}
+            ]}),
             ParamType::NodeIds => {
                 json!({"type": "array", "items": {"type": "integer", "minimum": 0}})
             }

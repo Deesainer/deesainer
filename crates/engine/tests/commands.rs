@@ -402,3 +402,307 @@ fn corner_radii_per_corner() {
         );
     }
 }
+
+#[test]
+fn colors_accept_hex_or_rgba_objects() {
+    let mut s = session();
+    let hex = id_of(&run(
+        &mut s,
+        "node.create.rectangle",
+        json!({"x": 0, "y": 0, "width": 10, "height": 10, "fill": "#FF000080"}),
+    ));
+    let obj = id_of(&run(
+        &mut s,
+        "node.create.rectangle",
+        json!({"x": 0, "y": 0, "width": 10, "height": 10, "fill": {"r": 1, "g": 0, "b": 0, "a": 128.0 / 255.0}}),
+    ));
+    let doc = s.snapshot();
+    assert_eq!(
+        doc.get(NodeId(hex)).unwrap().fills,
+        doc.get(NodeId(obj)).unwrap().fills
+    );
+    let page = run(&mut s, "document.tree", Value::Null)["page"]["id"].clone();
+    run(
+        &mut s,
+        "page.setBackground",
+        json!({"id": page, "color": {"r": 0.85, "g": 0.86, "b": 0.9}}),
+    );
+    for bad in [
+        json!({"r": 255, "g": 0, "b": 0}),
+        json!({"r": 1, "g": 0}),
+        json!(12),
+    ] {
+        let err = s
+            .dispatch(
+                "node.create.rectangle",
+                &json!({"x": 0, "y": 0, "width": 1, "height": 1, "fill": bad}),
+            )
+            .unwrap_err();
+        assert!(err.to_string().contains("hex string"), "{err}");
+    }
+}
+
+#[test]
+fn rectangles_and_frames_take_a_corner_radius_on_creation() {
+    let mut s = session();
+    for cmd in ["node.create.rectangle", "node.create.frame"] {
+        let id = id_of(&run(
+            &mut s,
+            cmd,
+            json!({"x": 0, "y": 0, "width": 40, "height": 40, "cornerRadius": 12}),
+        ));
+        let r = s.snapshot().get(NodeId(id)).unwrap().corner_radius;
+        assert_eq!((r.top_left, r.bottom_right), (12.0, 12.0), "{cmd}");
+    }
+    assert!(s
+        .dispatch(
+            "node.create.rectangle",
+            &json!({"x": 0, "y": 0, "width": 1, "height": 1, "cornerRadius": -1})
+        )
+        .is_err());
+    assert!(s
+        .dispatch(
+            "node.create.ellipse",
+            &json!({"x": 0, "y": 0, "width": 1, "height": 1, "cornerRadius": 4})
+        )
+        .is_err());
+}
+
+#[test]
+fn color_list_and_replace_recolor_a_page_in_one_step() {
+    let mut s = session();
+    let frame = id_of(&run(
+        &mut s,
+        "node.create.frame",
+        json!({"x": 0, "y": 0, "width": 100, "height": 100, "fill": "#FFFFFF"}),
+    ));
+    let card = id_of(&run(
+        &mut s,
+        "node.create.rectangle",
+        json!({"parent": frame, "x": 0, "y": 0, "width": 10, "height": 10, "fill": "#0F172A80"}),
+    ));
+    let label = id_of(&run(
+        &mut s,
+        "node.create.text",
+        json!({"parent": frame, "x": 0, "y": 0, "content": "Hi", "fill": "#0F172A"}),
+    ));
+    run(&mut s, "selection.clear", Value::Null);
+    let colors = run(&mut s, "color.list", json!({"ids": [frame]}));
+    let find = |hex: &str| {
+        colors
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["color"] == hex)
+            .cloned()
+    };
+    assert_eq!(find("#FFFFFF").unwrap()["fill"], 1);
+    assert_eq!(find("#0F172A").unwrap()["text"], 1);
+    assert_eq!(find("#0F172A80").unwrap()["fill"], 1);
+    let out = run(
+        &mut s,
+        "color.replace",
+        json!({"ids": [frame], "map": {"#FFFFFF": "#0F172A", "#0F172A": "#F8FAFC"}}),
+    );
+    assert_eq!(out, json!({"layers": 3, "changes": 3}));
+    let fill = |s: &Session, id: u64| {
+        deesainer_engine::doc::Paint::primary_color(&s.snapshot().get(NodeId(id)).unwrap().fills[0])
+            .unwrap()
+            .to_hex()
+    };
+    assert_eq!(fill(&s, frame), "#0F172A");
+    assert_eq!(fill(&s, card), "#F8FAFC80");
+    assert_eq!(fill(&s, label), "#F8FAFC");
+    run(&mut s, "edit.undo", Value::Null);
+    assert_eq!(fill(&s, frame), "#FFFFFF");
+    assert_eq!(fill(&s, label), "#0F172A");
+    assert!(s
+        .dispatch("color.replace", &json!({"map": {"white": "#000000"}}))
+        .is_err());
+}
+
+#[test]
+fn inspect_shows_hex_colors_and_color_list_names_the_layers() {
+    let mut s = session();
+    let a = id_of(&run(
+        &mut s,
+        "node.create.rectangle",
+        json!({"x": 0, "y": 0, "width": 10, "height": 10, "fill": "#1E293B80"}),
+    ));
+    let b = id_of(&run(
+        &mut s,
+        "node.create.rectangle",
+        json!({"x": 20, "y": 0, "width": 10, "height": 10, "fill": "#1E293B80"}),
+    ));
+    let node = run(&mut s, "node.inspect", json!({"id": a}));
+    assert_eq!(node["fills"][0]["color"], "#1E293B80");
+    assert_eq!(node["rect"]["width"], 10.0);
+    run(&mut s, "selection.clear", Value::Null);
+    let colors = run(&mut s, "color.list", Value::Null);
+    let hit = colors
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["color"] == "#1E293B80")
+        .unwrap();
+    assert_eq!(hit["layers"], json!([a, b]));
+}
+
+#[test]
+fn color_replace_maps_fills_and_text_separately() {
+    let mut s = session();
+    let frame = id_of(&run(
+        &mut s,
+        "node.create.frame",
+        json!({"x": 0, "y": 0, "width": 100, "height": 100, "fill": "#FFFFFF"}),
+    ));
+    let button = id_of(&run(
+        &mut s,
+        "node.create.rectangle",
+        json!({"parent": frame, "x": 0, "y": 0, "width": 50, "height": 20, "fill": "#4F46E5"}),
+    ));
+    let on_button = id_of(&run(
+        &mut s,
+        "node.create.text",
+        json!({"parent": frame, "x": 0, "y": 0, "content": "Log in", "fill": "#FFFFFF"}),
+    ));
+    let body = id_of(&run(
+        &mut s,
+        "node.create.text",
+        json!({"parent": frame, "x": 0, "y": 30, "content": "Hi", "fill": "#0F172A"}),
+    ));
+    let out = run(
+        &mut s,
+        "color.replace",
+        json!({"ids": [frame],
+               "fill": {"#FFFFFF": "#1E293B"},
+               "text": {"#0F172A": "#F8FAFC"},
+               "map": {"#4F46E5": "#6366F1"}}),
+    );
+    assert_eq!(out["changes"], 3);
+    let fill = |s: &Session, id: u64| {
+        deesainer_engine::doc::Paint::primary_color(&s.snapshot().get(NodeId(id)).unwrap().fills[0])
+            .unwrap()
+            .to_hex()
+    };
+    assert_eq!(fill(&s, frame), "#1E293B");
+    assert_eq!(fill(&s, on_button), "#FFFFFF");
+    assert_eq!(fill(&s, body), "#F8FAFC");
+    assert_eq!(fill(&s, button), "#6366F1");
+    assert!(s
+        .dispatch("color.replace", &json!({"ids": [frame]}))
+        .is_err());
+    assert!(s
+        .dispatch("color.replace", &json!({"text": {"nope": "#000000"}}))
+        .is_err());
+}
+
+#[test]
+fn batch_steps_can_use_ids_from_earlier_steps() {
+    let mut s = session();
+    let steps = vec![
+        (
+            "node.create.frame".to_owned(),
+            json!({"x": 0, "y": 0, "width": 200, "height": 100}),
+        ),
+        (
+            "node.create.rectangle".to_owned(),
+            json!({"parent": "$0", "x": 0, "y": 0, "width": 120, "height": 40, "cornerRadius": 12}),
+        ),
+        (
+            "node.create.text".to_owned(),
+            json!({"parent": "$0", "x": 0, "y": 0, "content": "Go"}),
+        ),
+        (
+            "align.horizontalCenter".to_owned(),
+            json!({"ids": ["$1", "$2"]}),
+        ),
+        (
+            "align.verticalCenter".to_owned(),
+            json!({"ids": ["$1", "$2"]}),
+        ),
+    ];
+    let replies = s.dispatch_batch("Button", &steps).unwrap();
+    let frame = NodeId(id_of(&replies[0]));
+    let (button, label) = (NodeId(id_of(&replies[1])), NodeId(id_of(&replies[2])));
+    let doc = s.snapshot();
+    assert_eq!(doc.get(button).unwrap().parent, Some(frame));
+    assert_eq!(doc.get(label).unwrap().parent, Some(frame));
+    let (b, l) = (
+        doc.world_bounds(button).unwrap(),
+        doc.world_bounds(label).unwrap(),
+    );
+    assert!((b.center().x - l.center().x).abs() < 0.01);
+    assert!((b.center().y - l.center().y).abs() < 0.01);
+    let bad = vec![(
+        "node.create.text".to_owned(),
+        json!({"parent": "$3", "x": 0, "y": 0, "content": "x"}),
+    )];
+    let (i, e) = s.dispatch_batch("Bad", &bad).unwrap_err();
+    assert_eq!(i, 0);
+    assert!(e.to_string().contains("has not run"), "{e}");
+}
+
+#[test]
+fn paint_and_effect_params_take_hex_colors() {
+    let mut s = session();
+    let r = rect(&mut s, 0.0, 0.0, 100.0, 40.0);
+    run(
+        &mut s,
+        "node.setFills",
+        json!({"ids": [r], "fills": [{"type": "linearGradient", "start": {"x": 0, "y": 0}, "end": {"x": 1, "y": 1},
+            "stops": [{"position": 0, "color": "#059669"}, {"position": 1, "color": "#0D948880"}]}]}),
+    );
+    run(
+        &mut s,
+        "node.setEffects",
+        json!({"ids": [r], "effects": [{"type": "dropShadow", "color": "#05966940", "offset": {"x": 0, "y": 8}, "blur": 18}]}),
+    );
+    let node = run(&mut s, "node.inspect", json!({"id": r}));
+    assert_eq!(node["fills"][0]["stops"][0]["color"], "#059669");
+    assert_eq!(node["fills"][0]["stops"][1]["color"], "#0D948880");
+    assert_eq!(node["effects"][0]["color"], "#05966940");
+    assert!(s
+        .dispatch(
+            "node.setFills",
+            &json!({"ids": [r], "fills": [{"type": "solid", "color": "green"}]})
+        )
+        .is_err());
+}
+
+#[test]
+fn fonts_are_listed_and_replaced_within_a_scope() {
+    let mut s = session();
+    let listed = run(&mut s, "text.fonts", Value::Null);
+    assert!(listed["families"].is_array());
+    assert!(
+        listed["total"].as_u64().unwrap() >= listed["families"].as_array().unwrap().len() as u64
+    );
+    let a = id_of(&run(
+        &mut s,
+        "node.create.frame",
+        json!({"x": 0, "y": 0, "width": 50, "height": 50}),
+    ));
+    let inside = id_of(&run(
+        &mut s,
+        "node.create.text",
+        json!({"parent": a, "x": 0, "y": 0, "content": "in", "fontFamily": "Inter"}),
+    ));
+    let outside = id_of(&run(
+        &mut s,
+        "node.create.text",
+        json!({"x": 100, "y": 0, "content": "out", "fontFamily": "Inter"}),
+    ));
+    let out = run(
+        &mut s,
+        "text.replaceFont",
+        json!({"from": "inter", "to": "Manrope", "ids": [a]}),
+    );
+    assert_eq!(out["layers"], 1);
+    let family = |s: &Session, id: u64| match &s.snapshot().get(NodeId(id)).unwrap().kind {
+        NodeKind::Text(t) => t.style.font_family.clone(),
+        _ => String::new(),
+    };
+    assert_eq!(family(&s, inside), "Manrope");
+    assert_eq!(family(&s, outside), "Inter");
+}

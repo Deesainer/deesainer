@@ -1,6 +1,7 @@
 mod annotation;
 mod arrange;
 mod collection;
+mod colors;
 mod comment;
 mod component;
 mod create;
@@ -52,6 +53,7 @@ pub fn specs() -> Vec<CommandSpec> {
     all.extend(fonts::specs());
     all.extend(vector::specs());
     all.extend(style::specs());
+    all.extend(colors::specs());
     all.extend(collection::specs());
     all.extend(annotation::specs());
     all.extend(lint::specs());

@@ -213,7 +213,14 @@ impl Session {
         let mut replies = Vec::with_capacity(steps.len());
         let mut failure = None;
         for (i, (id, params)) in steps.iter().enumerate() {
-            match self.dispatch(id, params) {
+            let resolved = match resolve_step_refs(id, params, &replies) {
+                Ok(v) => v,
+                Err(e) => {
+                    failure = Some((i, e));
+                    break;
+                }
+            };
+            match self.dispatch(id, &resolved) {
                 Ok(v) => replies.push(v),
                 Err(e) => {
                     failure = Some((i, e));
@@ -401,6 +408,47 @@ impl Session {
         self.selection.retain(|id| doc.contains(*id));
         self.selection.dedup();
     }
+}
+
+fn resolve_step_refs(
+    command: &str,
+    params: &Value,
+    replies: &[Value],
+) -> Result<Value, EngineError> {
+    fn walk(v: &Value, replies: &[Value], depth: usize) -> Result<Value, String> {
+        if depth > 64 {
+            return Err("params nest too deeply".into());
+        }
+        match v {
+            Value::String(s) => {
+                let Some(n) = s.strip_prefix('$').and_then(|d| d.parse::<usize>().ok()) else {
+                    return Ok(v.clone());
+                };
+                let reply = replies
+                    .get(n)
+                    .ok_or_else(|| format!("{s:?} refers to a step that has not run yet"))?;
+                reply
+                    .get("id")
+                    .cloned()
+                    .ok_or_else(|| format!("{s:?}: step {n} returned no id"))
+            }
+            Value::Array(items) => items
+                .iter()
+                .map(|i| walk(i, replies, depth + 1))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Value::Array),
+            Value::Object(map) => map
+                .iter()
+                .map(|(k, i)| Ok((k.clone(), walk(i, replies, depth + 1)?)))
+                .collect::<Result<serde_json::Map<_, _>, String>>()
+                .map(Value::Object),
+            _ => Ok(v.clone()),
+        }
+    }
+    walk(params, replies, 0).map_err(|reason| EngineError::Invalid {
+        command: command.to_owned(),
+        reason,
+    })
 }
 
 fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {

@@ -152,9 +152,33 @@ impl<'a> Params<'a> {
     }
 
     pub fn color(&self, key: &str) -> Result<Option<Rgba>, EngineError> {
-        let Some(s) = self.str(key)? else {
+        let Some(v) = self.raw(key) else {
             return Ok(None);
         };
+        if let Some(obj) = v.as_object() {
+            let channel = |c: &str, default: Option<f64>| -> Result<f32, EngineError> {
+                match obj.get(c).map(Value::as_f64) {
+                    Some(Some(x)) if (0.0..=1.0).contains(&x) => Ok(x as f32),
+                    None if default.is_some() => Ok(default.unwrap_or(1.0) as f32),
+                    _ => Err(self.bad(
+                        key,
+                        "must be a hex string like \"#1A2B3C\" or {r, g, b, a?} with channels from 0 to 1",
+                    )),
+                }
+            };
+            return Ok(Some(Rgba::new(
+                channel("r", None)?,
+                channel("g", None)?,
+                channel("b", None)?,
+                channel("a", Some(1.0))?,
+            )));
+        }
+        let s = v.as_str().ok_or_else(|| {
+            self.bad(
+                key,
+                "must be a hex string like \"#1A2B3C\" or {r, g, b, a?} with channels from 0 to 1",
+            )
+        })?;
         Rgba::from_hex(s)
             .map(Some)
             .map_err(|e| self.bad(key, e.to_string()))
@@ -215,12 +239,39 @@ impl<'a> Params<'a> {
         let Some(v) = self.raw(key) else {
             return Ok(None);
         };
-        serde_json::from_value(v.clone())
+        let mut v = v.clone();
+        hex_colors_to_objects(&mut v, 0);
+        serde_json::from_value(v)
             .map(Some)
             .map_err(|e| self.bad(key, format!("has the wrong shape: {e}")))
     }
 
     pub fn req_json<T: DeserializeOwned>(&self, key: &str) -> Result<T, EngineError> {
         self.json(key)?.ok_or_else(|| self.missing(key))
+    }
+}
+
+fn hex_colors_to_objects(v: &mut Value, depth: usize) {
+    if depth > 32 {
+        return;
+    }
+    match v {
+        Value::Object(map) => {
+            for (k, child) in map.iter_mut() {
+                if k == "color" {
+                    if let Some(c) = child.as_str().and_then(|s| Rgba::from_hex(s.trim()).ok()) {
+                        *child = serde_json::json!({ "r": c.r, "g": c.g, "b": c.b, "a": c.a });
+                        continue;
+                    }
+                }
+                hex_colors_to_objects(child, depth + 1);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                hex_colors_to_objects(item, depth + 1);
+            }
+        }
+        _ => {}
     }
 }

@@ -3,6 +3,32 @@
 Every published release, newest first. Each entry is also the release notes
 of the matching tag (`docs/releases/<version>.md`).
 
+## 1.1.0-beta.5 - 2026-10-19
+
+- **AI assistant**: replies stream in, with the tokens, time and stop reason
+  of every request; Stop interrupts a reply mid-stream. A **Plan** mode
+  looks at the document read-only and answers with a plan shown as a card,
+  carried out by **Execute plan**. Replies render as Markdown, with hex
+  colours shown as swatches. Prompts and the last conversation survive a
+  restart (Up and Down recall earlier prompts). New settings: max steps per
+  message, reasoning (plan first, then act quickly), whether the model can
+  see images, and a separate debug window with every request, tool call and
+  result. Long sessions resend far less: older tool results are cut down and
+  the command index travels in the system prompt.
+- **Selection colors**: `color.list` lists the colours a selection or page
+  uses, with the layers using each; `color.replace` swaps them in one undo
+  step, with separate maps for fills, strokes, shadows and text, so a light
+  design turns dark in one call.
+- **Commands**: a batch can refer to the ids its earlier steps returned
+  (`"$0"`); rectangles and frames take a corner radius when created; colour
+  parameters accept `{r, g, b, a}` as well as hex, and paints, gradient
+  stops and shadows accept hex; `node.inspect` writes colours as hex;
+  `text.fonts` lists the installed fonts and `text.replaceFont` can be
+  limited to part of the document.
+- **MCP**: `doc_inspect` returns a compact layer tree and `command_list`
+  without a filter one line per command; a command id called as a tool runs
+  as that command.
+
 ## 1.1.0-beta.4 — 2026-10-14
 
 - **Colour management on the Mac**: on wide-gamut displays the canvas is

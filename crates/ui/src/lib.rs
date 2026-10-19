@@ -95,6 +95,7 @@ pub trait Extension {
         None
     }
     fn sidebar(&mut self, _ui: &mut egui::Ui, _session: &mut Session) {}
+    fn overlay(&mut self, _ctx: &egui::Context) {}
 }
 
 pub type FileActions = Box<dyn FnMut(&str, &mut Session) -> Result<String, String>>;
@@ -613,6 +614,7 @@ impl App {
                 pointer: &mut pointer,
             };
             changed |= ext.poll(&mut view);
+            ext.overlay(ui.ctx());
         }
         self.extensions = exts;
         for action in ui_actions {

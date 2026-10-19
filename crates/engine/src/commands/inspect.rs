@@ -17,7 +17,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .params(const { &[param("page", ParamType::NodeId, false, "Page id; defaults to the current page.")] }),
         CommandSpec::new("node.inspect", "Inspect node", node_inspect)
             .read_only()
-            .doc("Returns one node with all its properties, its worldBounds, parent and index.")
+            .doc("Returns one node with all its properties, its worldBounds, parent and index. Colours are hex strings (#RRGGBB, or #RRGGBBAA when translucent).")
             .params(const { &[param("id", ParamType::NodeId, true, "Node id.")] }),
         CommandSpec::new("document.find", "Find layers", document_find)
             .read_only()
@@ -98,11 +98,35 @@ fn node_inspect(ctx: &Context<'_>, p: &Params<'_>) -> Result<Outcome, EngineErro
         .get(id)
         .ok_or_else(|| p.bad("id", format!("{id} does not exist")))?;
     let mut v = serde_json::to_value(node).map_err(|e| EngineError::Internal(e.to_string()))?;
+    hex_colors(&mut v);
     v["type"] = json!(node.kind.type_name());
     v["worldBounds"] = json!(ctx.doc.world_bounds(id));
     v["index"] = json!(ctx.doc.index_in_parent(id).ok());
     v["page"] = json!(ctx.doc.page_of(id));
     Ok(Outcome::read(v))
+}
+
+fn hex_colors(v: &mut Value) {
+    match v {
+        Value::Object(map) => {
+            let channel = |k: &str| map.get(k).and_then(Value::as_f64);
+            if map.len() == 4 {
+                if let (Some(r), Some(g), Some(b), Some(a)) =
+                    (channel("r"), channel("g"), channel("b"), channel("a"))
+                {
+                    let hex =
+                        deesainer_color::Rgba::new(r as f32, g as f32, b as f32, a as f32).to_hex();
+                    *v = Value::String(hex);
+                    return;
+                }
+            }
+            for child in map.values_mut() {
+                hex_colors(child);
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(hex_colors),
+        _ => {}
+    }
 }
 
 fn document_find(ctx: &Context<'_>, p: &Params<'_>) -> Result<Outcome, EngineError> {

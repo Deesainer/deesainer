@@ -103,7 +103,7 @@ pub fn specs() -> Vec<CommandSpec> {
                 ]
             }),
         CommandSpec::new("node.setFills", "Set fills", set_fills)
-            .doc("Replaces fills with a paint list (bottom first). Paint: {type: solid|linearGradient|radialGradient|angularGradient|diamondGradient|image, color, start, end, center, radius, angle (angular: degrees clockwise from +x), stops:[{position, color}], asset, scaleMode, opacity, visible, blend}. Colours are {r,g,b,a} 0..1. Gradient handles are 0..1 in the box.")
+            .doc("Replaces fills with a paint list (bottom first). Paint: {type: solid|linearGradient|radialGradient|angularGradient|diamondGradient|image, color, start, end, center, radius, angle (angular: degrees clockwise from +x), stops:[{position, color}], asset, scaleMode, opacity, visible, blend}. Colours are hex strings (\"#059669\", \"#05966980\") or {r,g,b,a} 0..1. Gradient handles are {x, y} 0..1 in the box.")
             .params(const {
                 &[
                     IDS,

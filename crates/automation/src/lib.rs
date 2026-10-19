@@ -127,6 +127,106 @@ impl<B: Backend + ?Sized> Backend for &mut B {
     }
 }
 
+fn param_signatures(c: &Value) -> Vec<String> {
+    c["params"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|p| {
+            let req = if p["required"].as_bool() == Some(true) {
+                ""
+            } else {
+                "?"
+            };
+            format!(
+                "{}{}: {}",
+                p["name"].as_str().unwrap_or(""),
+                req,
+                p["type"].as_str().unwrap_or("")
+            )
+        })
+        .collect()
+}
+
+fn command_line(c: &Value) -> String {
+    format!(
+        "{}({})",
+        c["id"].as_str().unwrap_or(""),
+        param_signatures(c).join(", ")
+    )
+}
+
+pub fn command_index() -> &'static str {
+    static INDEX: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    INDEX.get_or_init(|| {
+        let Ok(mut session) = Session::new() else {
+            return String::new();
+        };
+        Backend::commands(&mut session)
+            .ok()
+            .and_then(|all| {
+                all.as_array()
+                    .map(|l| l.iter().map(command_line).collect::<Vec<_>>().join("\n"))
+            })
+            .unwrap_or_default()
+    })
+}
+
+fn short_number(v: &Value) -> Value {
+    match v.as_f64() {
+        Some(n) if n.is_finite() => {
+            let r = (n * 10.0).round() / 10.0;
+            if r.fract() == 0.0 && r.abs() < 1e15 {
+                json!(r as i64)
+            } else {
+                json!(r)
+            }
+        }
+        _ => v.clone(),
+    }
+}
+
+fn compact_layer(n: &Value) -> Value {
+    let mut out = serde_json::Map::new();
+    out.insert("id".into(), n["id"].clone());
+    out.insert("type".into(), n["type"].clone());
+    let text = n.get("text").and_then(Value::as_str);
+    if n.get("name").and_then(Value::as_str) != text {
+        out.insert("name".into(), n["name"].clone());
+    }
+    if let Some(t) = text {
+        out.insert("text".into(), json!(t));
+    }
+    if let Some(r) = n.get("rect").filter(|r| r.is_object()) {
+        let rect: Vec<Value> = ["x", "y", "width", "height"]
+            .iter()
+            .map(|k| short_number(&r[*k]))
+            .collect();
+        out.insert("rect".into(), Value::Array(rect));
+    }
+    if n.get("visible") == Some(&Value::Bool(false)) {
+        out.insert("hidden".into(), Value::Bool(true));
+    }
+    if let Some(rot) = n.get("rotation") {
+        out.insert("rotation".into(), short_number(rot));
+    }
+    if let Some(children) = n.get("children").and_then(Value::as_array) {
+        out.insert(
+            "children".into(),
+            Value::Array(children.iter().map(compact_layer).collect()),
+        );
+    }
+    Value::Object(out)
+}
+
+fn compact_tree(v: &Value) -> Value {
+    let mut out = v.clone();
+    if let (Some(tree), Some(obj)) = (v.get("tree"), out.as_object_mut()) {
+        obj.insert("tree".into(), compact_layer(tree));
+    }
+    out
+}
+
 pub fn tool_specs() -> Vec<(&'static str, &'static str, Value)> {
     tools()
         .into_iter()
@@ -175,7 +275,7 @@ fn tools() -> Vec<Tool> {
         Tool {
             name: "command_list",
             title: "List commands",
-            description: "Lists every Deesainer command (id, label, doc, params). Every feature is a command; start here. Optional filter matches ids and labels.",
+            description: "Lists Deesainer commands. Every feature is a command; start here. Without a filter: one line per command, \"id(param: type, optional?: type)\". With a filter (a substring of ids and labels, e.g. \"align\" or \"text.\"): the matching commands with label, doc, readOnly and params.",
             schema: || json!({"type": "object", "properties": {"filter": {"type": "string", "description": "Substring of the id or label."}}, "additionalProperties": false}),
             read_only: true,
             destructive: false,
@@ -202,7 +302,7 @@ fn tools() -> Vec<Tool> {
         Tool {
             name: "command_batch",
             title: "Run several commands",
-            description: "Runs commands in order as a single undo step. Stops at the first failure; earlier steps stay applied, so inspect state before retrying.",
+            description: "Runs commands in order as a single undo step. A param value \"$N\" is the id step N (from 0) returned, so one batch can create a frame, add children with parent \"$0\" and align them with ids [\"$1\", \"$2\"]. Stops at the first failure; earlier steps stay applied, so inspect state before retrying.",
             schema: || json!({"type": "object", "properties": {
                 "label": {"type": "string", "description": "Undo label."},
                 "steps": {"type": "array", "items": {"type": "object", "properties": {"command": {"type": "string"}, "params": {"type": "object"}}, "required": ["command"]}}
@@ -214,7 +314,7 @@ fn tools() -> Vec<Tool> {
         Tool {
             name: "doc_inspect",
             title: "Inspect the document",
-            description: "Returns pages, the current page's layer tree (ids, names, types, rects), the selection. Use node ids from here in commands.",
+            description: "Returns pages, the selection and a page's layer tree, compact: each layer is {id, type, name, text?, rect: [x, y, width, height] in its parent's space, hidden?, rotation?, children?}; name is left out when it equals the text. Use node ids from here in commands.",
             schema: || json!({"type": "object", "properties": {"page": {"type": "integer", "description": "Page id; default current page."}}, "additionalProperties": false}),
             read_only: true,
             destructive: false,
@@ -467,6 +567,14 @@ impl<B: Backend> McpServer<B> {
         }
     }
 
+    fn is_command(&mut self, name: &str) -> bool {
+        name.contains('.')
+            && self.backend.commands().is_ok_and(|all| {
+                all.as_array()
+                    .is_some_and(|l| l.iter().any(|c| c["id"] == name))
+            })
+    }
+
     pub fn call_tool(&mut self, name: &str, args: &Value) -> Result<Value, RpcError> {
         let text = |v: &Value| json!({"content": [{"type": "text", "text": v.to_string()}], "structuredContent": wrap(v)});
         let err = |m: String| json!({"content": [{"type": "text", "text": m}], "isError": true});
@@ -488,19 +596,24 @@ impl<B: Backend> McpServer<B> {
                     .flatten()
                     .filter(|c| {
                         filter.is_empty()
-                            || c["id"].as_str().is_some_and(|s| s.to_lowercase().contains(&filter))
-                            || c["label"].as_str().is_some_and(|s| s.to_lowercase().contains(&filter))
+                            || c["id"]
+                                .as_str()
+                                .is_some_and(|s| s.to_lowercase().contains(&filter))
+                            || c["label"]
+                                .as_str()
+                                .is_some_and(|s| s.to_lowercase().contains(&filter))
                     })
                     .map(|c| {
+                        if filter.is_empty() {
+                            return json!(command_line(c));
+                        }
+                        let params = param_signatures(c);
                         json!({
                             "id": c["id"],
                             "label": c["label"],
                             "doc": c["doc"],
                             "readOnly": c["readOnly"],
-                            "params": c["params"].as_array().map(|ps| ps.iter().map(|p| {
-                                let req = if p["required"].as_bool() == Some(true) { "" } else { "?" };
-                                format!("{}{}: {}", p["name"].as_str().unwrap_or(""), req, p["type"].as_str().unwrap_or(""))
-                            }).collect::<Vec<_>>()),
+                            "params": params,
                         })
                     })
                     .collect();
@@ -569,7 +682,7 @@ impl<B: Backend> McpServer<B> {
                     None => Value::Null,
                 };
                 match self.backend.dispatch("document.tree", &params) {
-                    Ok(v) => Ok(text(&v)),
+                    Ok(v) => Ok(text(&compact_tree(&v))),
                     Err(e) => Ok(err(e)),
                 }
             }
@@ -605,6 +718,18 @@ impl<B: Backend> McpServer<B> {
                     Some(Ok(v)) => Ok(text(&v)),
                     Some(Err(e)) => Ok(err(e)),
                     None => Ok(err("not connected to an app".into())),
+                }
+            }
+            cmd if self.is_command(cmd) => {
+                let params = if args.as_object().is_some_and(|o| !o.is_empty()) {
+                    args.clone()
+                } else {
+                    Value::Null
+                };
+                match self.backend.dispatch(cmd, &params) {
+                    Ok(v) if cmd == "view.renderPreview" => Ok(image_result(&v)),
+                    Ok(v) => Ok(text(&v)),
+                    Err(e) => Ok(err(e)),
                 }
             }
             other => Err(RpcError::invalid_params(format!(
@@ -756,5 +881,76 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("frame"));
+    }
+
+    #[test]
+    fn doc_inspect_is_a_compact_layer_tree() {
+        let mut s = server();
+        let made = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "command_batch", "arguments": {"steps": [
+                {"command": "node.create.frame", "params": {"x": 10, "y": 20.25, "width": 390, "height": 844}},
+                {"command": "node.create.text", "params": {"x": 0, "y": 0, "content": "Hello"}},
+                {"command": "node.create.rectangle", "params": {"x": 0, "y": 0, "width": 4, "height": 4, "name": "dot"}}
+            ]}}}),
+        );
+        assert!(made["result"]["isError"].is_null(), "{made}");
+        let reply = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "doc_inspect", "arguments": {}}}),
+        );
+        let text = reply["result"]["content"][0]["text"].as_str().unwrap();
+        let v: Value = serde_json::from_str(text).unwrap();
+        let layers = v["tree"]["children"].as_array().unwrap();
+        let frame = layers.iter().find(|l| l["type"] == "frame").unwrap();
+        assert_eq!(frame["rect"], json!([10, 20.3, 390, 844]));
+        let hello = layers.iter().find(|l| l["type"] == "text").unwrap();
+        assert_eq!(hello["text"], "Hello");
+        assert!(
+            hello.get("name").is_none(),
+            "name equal to the text is dropped"
+        );
+        let dot = layers.iter().find(|l| l["type"] == "rectangle").unwrap();
+        assert_eq!(dot["name"], "dot");
+        assert!(!text.contains("\"visible\""));
+        let full = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "document.tree", "arguments": {}}}),
+        );
+        let full = full["result"]["content"][0]["text"].as_str().unwrap();
+        assert!(
+            text.len() * 10 < full.len() * 8,
+            "{} vs {}",
+            text.len(),
+            full.len()
+        );
+    }
+
+    #[test]
+    fn command_ids_called_as_tools_run_as_commands() {
+        let mut s = server();
+        let tree = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "document.tree", "arguments": {}}}),
+        );
+        assert!(tree["result"]["isError"].is_null(), "{tree}");
+        let made = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "node.create.rectangle", "arguments": {"x": 0, "y": 0, "width": 40, "height": 20, "cornerRadius": 8}}}),
+        );
+        assert!(made["result"]["isError"].is_null(), "{made}");
+        let bad = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "node.create.rectangle", "arguments": {"x": 0}}}),
+        );
+        assert_eq!(bad["result"]["isError"], true, "{bad}");
+        let unknown = call(
+            &mut s,
+            json!({"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "no.such.thing", "arguments": {}}}),
+        );
+        assert!(unknown["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("unknown tool"));
     }
 }
